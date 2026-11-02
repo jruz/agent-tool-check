@@ -31,11 +31,13 @@ Use the `just` recipes instead so they execute through the repo's sandbox wrappe
 - `just test`
 - `just fix`
 - `just run ...`
-- `just rust-build`
-- `just rust-check`
-- `just rust-test`
+- `just rust::build`
+- `just rust::check`
+- `just rust::test`
 - `just release-upload <tag>`
 - `just release-delete <tag>`
+
+`just setup` installs TypeScript dependencies. The sandbox builds runtime images on first use and reuses them until their Dockerfiles or runtime pins change.
 
 ## Architecture
 

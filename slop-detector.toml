@@ -1,5 +1,3 @@
 [ignore.by-rule]
 no-return-ok = ["src/shared/zellij.rs"]
-no-swallowed-err = [
-    "src/shared/zellij.rs",
-]
+no-swallowed-err = ["src/shared/zellij.rs"]
