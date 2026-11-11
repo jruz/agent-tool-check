@@ -42,6 +42,13 @@ pub fn run(
         "atuin" if matches!(first, Some("search" | "history" | "stats" | "key")) => {
             Some("Access to shell history blocked")
         }
+        "git"
+            if first == Some("pull")
+                && (has_argument(arguments, "--no-rebase")
+                    || has_argument(arguments, "--rebase=false")) =>
+        {
+            Some("Don't disable rebasing with `git pull`. Use `git pull --rebase` instead.")
+        }
         "git" if first == Some("filter-branch") && has_argument(arguments, "--all") => Some(
             "Never use --all with git filter-branch \u{2014} it overwrites backup branches. Target specific branches instead.",
         ),

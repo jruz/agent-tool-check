@@ -75,6 +75,46 @@ fn assert_blocked(commands: &[&str], expected: &str) {
 }
 
 #[test]
+fn blocks_git_pull_without_rebase() {
+    assert_blocked(
+        &[
+            "git pull --no-rebase",
+            "git pull --rebase=false",
+            "git pull origin main --rebase=false",
+            "git -C /tmp pull --rebase=false",
+            "command git pull '--rebase=false'",
+            "bash -c 'git pull --rebase=false'",
+            "git pull origin main --no-rebase",
+            "git -C /tmp pull --no-rebase",
+            "git -c pull.rebase=true pull --no-rebase",
+            "/usr/bin/git pull '--no-rebase'",
+            "command git pull --no-rebase",
+            "env MODE=test git pull --no-rebase",
+            "sandbox git pull --no-rebase",
+            "bash -c 'git pull --no-rebase'",
+            "echo ready && git pull --no-rebase",
+            "ssh host 'git pull --no-rebase'",
+            "docker exec container git pull --no-rebase",
+        ],
+        "Don't disable rebasing with `git pull`. Use `git pull --rebase` instead.",
+    );
+}
+
+#[test]
+fn allows_other_git_pull_commands_and_mentions() {
+    assert_allowed(&[
+        "git pull",
+        "git pull --rebase",
+        "git pull --ff-only",
+        "git -C /tmp pull --rebase origin main",
+        "echo 'git pull --no-rebase'",
+        "echo 'git pull --rebase=false'",
+        "rg 'git pull --no-rebase' src",
+        "git status # git pull --no-rebase",
+    ]);
+}
+
+#[test]
 fn allows_security_mentions_without_execution() {
     assert_allowed(&[
         "curl --fail --location --max-time 30 --output /tmp/stalwart-official-security.html https://stalw.art/docs/install/security/",
