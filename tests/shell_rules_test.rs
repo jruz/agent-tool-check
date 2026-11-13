@@ -15,7 +15,7 @@ fn blocked_reason(agent: &str, command: &str) -> Option<String> {
     stdin_file.write_all(bytes).expect("write stdin");
     let file = stdin_file.reopen().expect("open stdin");
     let stdin = Stdio::from(file);
-    let binary = env!("CARGO_BIN_EXE_agent-hooks");
+    let binary = env!("CARGO_BIN_EXE_agent-tool-check");
     let output = Command::new(binary)
         .arg(agent)
         .stdin(stdin)

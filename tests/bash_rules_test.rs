@@ -641,7 +641,7 @@ fn allows_sandboxed_absolute_cargo_path() {
 
 #[test]
 fn allows_executable_inside_cargo_directory() {
-    let output = run_bash("/home/user/.cargo/bin/agent-hooks --version");
+    let output = run_bash("/home/user/.cargo/bin/agent-tool-check --version");
     assert!(blocked_reason(&output).is_none());
 }
 

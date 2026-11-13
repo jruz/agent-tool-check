@@ -1,5 +1,5 @@
 repo:
-  name: jruz/agent-hooks
+  name: jruz/agent-tool-check
 secrets:
   GITHUB_TOKEN:
     events:

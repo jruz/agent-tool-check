@@ -17,7 +17,7 @@ pub fn run_fixture(agent: &str, relative_path: &str) -> Output {
 
     let stdin_file = std::fs::File::open(tmp_path).expect("open temp file");
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    Command::new(env!("CARGO_BIN_EXE_agent-hooks"))
+    Command::new(env!("CARGO_BIN_EXE_agent-tool-check"))
         .arg(agent)
         .current_dir(manifest_dir)
         .stdin(stdin_file)

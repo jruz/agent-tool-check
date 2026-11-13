@@ -1,4 +1,4 @@
-# agent-hooks
+# agent-tool-check
 
 Hooks for Claude Code, Codex, and Pi.
 
@@ -7,7 +7,7 @@ Hooks for Claude Code, Codex, and Pi.
 Requires Nix with flakes enabled.
 
 ```sh
-nix profile add github:jruz/agent-hooks
+nix profile add github:jruz/agent-tool-check
 ```
 
 Installs a published binary without compiling Rust. Supports Linux and macOS on x86_64 and aarch64.
@@ -15,25 +15,25 @@ Installs a published binary without compiling Rust. Supports Linux and macOS on 
 Verify the installation:
 
 ```sh
-agent-hooks --version
+agent-tool-check --version
 ```
 
 Upgrade:
 
 ```sh
-nix profile upgrade agent-hooks
+nix profile upgrade agent-tool-check
 ```
 
 Run without installing:
 
 ```sh
-nix run github:jruz/agent-hooks -- --help
+nix run github:jruz/agent-tool-check -- --help
 ```
 
 Build from source instead:
 
 ```sh
-nix build github:jruz/agent-hooks#source
+nix build github:jruz/agent-tool-check#source
 ```
 
 See [AGENTS.md](AGENTS.md) for hook commands and configuration file locations.

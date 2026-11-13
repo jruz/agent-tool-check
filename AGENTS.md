@@ -1,13 +1,13 @@
-# agent-hooks
+# agent-tool-check
 
 Rust CLI that runs the PreToolUse hook for Claude Code, Codex, and Pi.
 
 ## Usage
 
 ```sh
-agent-hooks claude # Claude PreToolUse hook (reads stdin)
-agent-hooks codex  # Codex PreToolUse hook (reads stdin)
-agent-hooks pi     # Pi PreToolUse hook (reads stdin)
+agent-tool-check claude # Claude PreToolUse hook (reads stdin)
+agent-tool-check codex  # Codex PreToolUse hook (reads stdin)
+agent-tool-check pi     # Pi PreToolUse hook (reads stdin)
 ```
 
 Configure each agent's PreToolUse hook to pass the matching agent.
@@ -131,4 +131,4 @@ responses use `{ "block": true, "reason": "..." }`.
 
 ## Logging
 
-Errors are logged as JSONL to `~/.local/state/agent-hooks/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
+Errors are logged as JSONL to `~/.local/state/agent-tool-check/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
