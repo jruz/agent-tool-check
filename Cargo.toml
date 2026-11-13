@@ -75,3 +75,6 @@ lto = true
 
 [dev-dependencies]
 tempfile = "3.27.0"
+
+[build-dependencies]
+thiserror = "2.0.21"
