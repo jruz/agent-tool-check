@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-26.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -12,8 +13,9 @@
     {
       self,
       nixpkgs,
-      rust-overlay,
+      nixpkgs-unstable,
       flake-utils,
+      rust-overlay,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -26,11 +28,12 @@
           cargo = rust;
           rustc = rust;
         };
-        rustToolchain = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
-        rustVersion = rustToolchain.toolchain.channel;
-        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+        cargoToml = fromTOML (builtins.readFile ./Cargo.toml);
+        projectName = cargoToml.package.name;
         revision = self.rev or "dirty";
-        inherit (builtins.fromJSON (builtins.readFile ./package.json)) engines;
+        release = builtins.fromJSON (builtins.readFile ./release.json);
+        platform = release.platforms.${system};
+        unstable = import nixpkgs-unstable { inherit system; };
         sandbox = pkgs.writeShellScriptBin "sandbox" ''
           export PATH=${
             pkgs.lib.makeBinPath [
@@ -41,32 +44,42 @@
           }:"$PATH"
           exec ${pkgs.nushell}/bin/nu --no-config-file ${./scripts/sandbox.nu} "$@"
         '';
-        defaultPackages =
-          with pkgs;
-          [
-            deadnix
-            fd
-            gh
-            git
-            just
-            nixfmt
-            woodpecker-cli
-            nu-lint
-            nushell
-            sandbox
-            statix
-          ]
-          ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
-            glibc
-            glibcLocales
-          ];
       in
       {
-        packages.default = rustPlatform.buildRustPackage {
-          pname = cargoToml.package.name;
+        packages.default = pkgs.stdenvNoCC.mkDerivation {
+          pname = projectName;
+          inherit (release) version;
+          src = pkgs.fetchurl {
+            url = "https://github.com/jruz/${projectName}/releases/download/v${release.version}/${platform.asset}";
+            inherit (platform) hash;
+          };
+          dontUnpack = true;
+          dontStrip = true;
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 "$src" "$out/bin/${projectName}"
+            install -Dm644 ${./LICENSE} "$out/share/licenses/${projectName}/LICENSE"
+            runHook postInstall
+          '';
+          meta = {
+            mainProgram = projectName;
+            license = pkgs.lib.licenses.eupl12;
+            platforms = builtins.attrNames release.platforms;
+          };
+        };
+
+        packages.source = rustPlatform.buildRustPackage {
+          pname = projectName;
           inherit (cargoToml.package) version;
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
+          postInstall = ''
+            install -Dm644 ${./LICENSE} "$out/share/licenses/${projectName}/LICENSE"
+          '';
+          meta = {
+            mainProgram = projectName;
+            license = pkgs.lib.licenses.eupl12;
+          };
           REVISION = revision;
           CARGO_HOME = "$TMPDIR";
           doCheck = false;
@@ -75,23 +88,22 @@
         };
 
         devShells.default = pkgs.mkShell {
-          packages = defaultPackages;
+          packages = with pkgs; [
+            deadnix
+            fd
+            gh
+            git
+            just
+            nixfmt
+            nu-lint
+            nushell
+            podman
+            ripgrep
+            sandbox
+            statix
+            unstable.woodpecker-cli
+          ];
 
-          shellHook = ''
-            echo ""
-            echo "  ${cargoToml.package.name} Development Shell"
-            echo "  ───────────────────────────"
-            echo "  nixpkgs      ${pkgs.lib.trivial.release}"
-            echo "  rust         ${rustVersion} (docker)"
-            echo "  bun          ${engines.bun} (docker)"
-            echo "  node         ${engines.node} (docker)"
-            echo "  pnpm         ${engines.pnpm} (docker)"
-            echo "  gh           ${pkgs.gh.version}"
-            echo ""
-          ''
-          + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-            export LOCALE_ARCHIVE="${pkgs.glibcLocales}/lib/locale/locale-archive"
-          '';
         };
       }
     );

@@ -1,3 +1,5 @@
+import '.just/release.justfile'
+
 mod bun '.just/bun.justfile'
 mod rust '.just/rust.justfile'
 mod ts '.just/ts.justfile'
@@ -83,27 +85,3 @@ woodpecker-check:
         --strict \
         .woodpecker/
 
-# ─────────────────────────────── release ───────────────────────────────
-
-release-bump VERSION:
-    nu scripts/release-bump.nu {{ VERSION }}
-
-release-build TARGET:
-    nu scripts/release-build.nu {{ TARGET }}
-
-release-build-all:
-    nu scripts/release-build.nu all
-
-release-upload TAG:
-    gh release view {{ TAG }} \
-        || gh release create {{ TAG }} \
-            --title {{ TAG }} \
-            --verify-tag
-    gh release upload {{ TAG }} \
-        {{ env("CI_REPO_NAME") }}-* \
-        --clobber
-
-release-delete TAG:
-    gh release delete {{ TAG }} \
-        --cleanup-tag \
-        --yes

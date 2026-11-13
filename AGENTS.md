@@ -13,6 +13,12 @@ agent-hooks pre-tool-use --agent pi     # Pi PreToolUse hook (reads stdin)
 
 Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `agent-hooks stop` for Claude, Codex, and Pi.
 
+## Release
+
+- `just release bump <version>` updates Cargo manifests and commits the version bump.
+- Push the bump to `main`; CI handles tagging and publishing.
+- `just release delete <tag>` deletes a published release and its tag.
+
 ## Hook Files
 
 - `~/.claude/settings.json`
@@ -34,8 +40,8 @@ Use the `just` recipes instead so they execute through the repo's sandbox wrappe
 - `just rust::build`
 - `just rust::check`
 - `just rust::test`
-- `just release-upload <tag>`
-- `just release-delete <tag>`
+- `just release upload <tag>`
+- `just release delete <tag>`
 
 `just setup` installs TypeScript dependencies. The sandbox builds runtime images on first use and reuses them until their Dockerfiles or runtime pins change.
 

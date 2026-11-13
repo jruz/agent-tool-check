@@ -6,3 +6,5 @@ result
 .intentionally-empty-file.o
 node_modules/
 .pnpm-store/
+/*-unknown-linux-musl-*
+/*-apple-darwin-*
