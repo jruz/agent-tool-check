@@ -1,0 +1,7 @@
+{
+  "readonlyHomeDirectories": [
+    ".claude/projects",
+    ".codex/sessions",
+    ".pi/agent/sessions"
+  ]
+}

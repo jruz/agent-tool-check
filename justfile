@@ -33,6 +33,10 @@ run *ARGS='':
 logs:
     nvim ~/.local/state/agent-hooks/hooks.log
 
+[positional-arguments]
+denials-list *ARGS:
+    sandbox bun scripts/denials-list.ts "$@"
+
 ts-dependencies-add +PACKAGES:
     sandbox pnpm add --save-dev --save-exact {{PACKAGES}}
 

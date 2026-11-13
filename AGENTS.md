@@ -45,6 +45,37 @@ Use the `just` recipes instead so they execute through the repo's sandbox wrappe
 
 `just setup` installs TypeScript dependencies. The sandbox builds runtime images on first use and reuses them until their Dockerfiles or runtime pins change.
 
+## Reviewing Historical Denials
+
+Use the TypeScript report to find our known hook-error messages in Claude, Codex, and Pi tool results:
+
+Last two days across all agents:
+
+```sh
+just denials-list --since-days 2
+```
+
+Older Codex denials:
+
+```sh
+just denials-list --since-days 365 --agent codex --limit 1000
+```
+
+- `--since-days`: required positive integer selecting the last N × 24 hours.
+- `--limit`: positive integer limiting the newest denials listed; defaults to `100`.
+- `--agent`: `all`, `claude`, `codex`, or `pi`; defaults to `all`.
+
+- Default output groups occurrence details by the complete error converted to lowercase kebab-case.
+- Details include the triggering command.
+- Common credential forms are redacted; other sensitive command text may remain.
+- The limit selects newest occurrences before grouping.
+- `--json` returns the full metadata report without commands.
+- Only known hook-error strings are matched; unknown historical messages remain unmatched.
+
+The project configures read-only transcript mounts in `sandbox.json`. The sandbox only runs Bun, Node, pnpm, and Rust tools in Docker. Other commands are rejected.
+
+See `scripts/denials-list/README.md` for report behavior.
+
 ## Architecture
 
 ```
