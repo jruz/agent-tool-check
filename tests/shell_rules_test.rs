@@ -608,6 +608,9 @@ fn blocks_environment_dump_commands_in_all_contexts() {
             "local",
             "ps e",
             "ps auxe",
+            "ps -eo pid,comm auxe",
+            "ps -eopid,comm auxe",
+            "ps -eo pid,comm e",
         ],
         "Never print environment variables",
     );
@@ -784,6 +787,11 @@ fn allows_environment_wrappers_and_literal_mentions() {
         "ps --user agent",
         "ps -p 1 --format euser,comm",
         "ps --format=euser,comm",
+        "ps -eo pid,ppid,pcpu,pmem,etime,comm --sort=-pcpu",
+        "ps -eo pid,comm,%cpu,%mem,rss --sort=-%cpu | head -16",
+        "ps -eo pid,comm,%cpu,%mem,rss --sort=-rss | head -16",
+        "ps -eopid,comm --sort=-pcpu",
+        "ps -efo euser,comm",
         "set +x",
         "sandbox bash -c 'git status'",
         "echo 'env; printenv TOKEN; echo \"$TOKEN\"'",
@@ -793,6 +801,33 @@ fn allows_environment_wrappers_and_literal_mentions() {
         "cat <<< '$TOKEN'",
         "rg 'printenv TOKEN' src",
     ]);
+}
+
+#[test]
+fn fd_lists_sensitive_paths_without_reading_them() {
+    assert_allowed(&[
+        "fd --hidden --type file . home/.ssh",
+        "fd --hidden --type file . ~/.ssh",
+        "fd --type=file . ~/.ssh",
+        "fd .env .",
+    ]);
+    assert_blocked(
+        &[
+            "fd --ignore-file ~/.ssh/id_ed25519 .",
+            "fd --ignore-file=~/.ssh/id_ed25519 .",
+            "fd --exec cat {} -- . ~/.ssh",
+            "fd -X cat . ~/.ssh",
+            "fd -Hx cat . ~/.ssh",
+            "fd --exec=cat . ~/.ssh",
+            "fd --exec-batch cat {} -- . ~/.ssh",
+            "fd --exec-batch=cat . ~/.ssh",
+        ],
+        "Access to sensitive file blocked",
+    );
+    assert_blocked(
+        &["fd --ignore-file .env .", "fd --ignore-file=.env ."],
+        "Never access .env files directly",
+    );
 }
 
 #[test]

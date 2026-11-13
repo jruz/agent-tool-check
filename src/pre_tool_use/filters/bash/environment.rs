@@ -139,10 +139,26 @@ fn check_process_argument(word: &ast::Word, remaining: &[&ast::Word]) -> Result<
             let remaining = remaining_after_option(remaining)?;
             check_process_output(remaining)
         }
+        Some(value) if process_option_needs_value(value) => {
+            let remaining = remaining_after_option(remaining)?;
+            check_process_output(remaining)
+        }
         Some(value) if !value.starts_with('-') && value.contains('e') => Err(Error::Dump),
         Some(_) => check_process_output(remaining),
         None => Err(Error::Dump),
     }
+}
+
+fn process_option_needs_value(value: &str) -> bool {
+    let Some(options) = value
+        .strip_prefix('-')
+        .filter(|value| !value.starts_with('-'))
+    else {
+        return false;
+    };
+    let mut characters = options.chars();
+    characters.any(|option| matches!(option, 'p' | 'u' | 'U' | 'o' | 'g' | 'G' | 't' | 'C'))
+        && characters.next().is_none()
 }
 
 fn check_trace_arguments(arguments: &[&ast::Word]) -> Result<(), Error> {

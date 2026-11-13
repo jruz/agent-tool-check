@@ -18,7 +18,8 @@ pub fn run(executable: &str, arguments: &[&ast::Word]) -> Result<(), Error> {
         | "ksh" | "sh" | "zsh" | "nix-shell" | "docker" | "curl" | "ls" => Ok(()),
         "find" => check_find_paths(arguments),
         "git" => check_git_files(arguments),
-        "fd" | "grep" | "rg" => check_search_files(arguments, false),
+        "fd" => check_fd_files(arguments),
+        "grep" | "rg" => check_search_files(arguments, false),
         "ssh" => check_option_files(arguments, &["-i", "-F", "-E"]),
         "sed" => check_sed_files(arguments, false),
         _ => arguments.iter().try_for_each(|word| check_word(word)),
@@ -188,6 +189,30 @@ fn check_message_file(arguments: &[&ast::Word]) -> Result<(), Error> {
         }
         None => Ok(()),
     }
+}
+
+fn check_fd_files(arguments: &[&ast::Word]) -> Result<(), Error> {
+    check_option_files(arguments, &["--ignore-file"])?;
+    arguments.iter().try_for_each(|word| {
+        let literal = shell::static_word(word)?;
+        match literal.as_deref() {
+            Some(value) if value.starts_with("--ignore-file=") => {
+                let path = value.trim_start_matches("--ignore-file=");
+                check_path(path)
+            }
+            Some(value) if is_fd_execution_option(value) => arguments
+                .iter()
+                .try_for_each(|argument| check_word(argument)),
+            Some(_) | None => Ok(()),
+        }
+    })
+}
+
+fn is_fd_execution_option(value: &str) -> bool {
+    matches!(value, "--exec" | "--exec-batch")
+        || value.starts_with("--exec=")
+        || value.starts_with("--exec-batch=")
+        || (value.starts_with('-') && !value.starts_with("--") && value.contains(['x', 'X']))
 }
 
 fn check_search_files(arguments: &[&ast::Word], has_pattern: bool) -> Result<(), Error> {
