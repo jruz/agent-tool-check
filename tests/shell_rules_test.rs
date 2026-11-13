@@ -17,7 +17,7 @@ fn blocked_reason(agent: &str, command: &str) -> Option<String> {
     let stdin = Stdio::from(file);
     let binary = env!("CARGO_BIN_EXE_agent-hooks");
     let output = Command::new(binary)
-        .args(["pre-tool-use", "--agent", agent])
+        .arg(agent)
         .stdin(stdin)
         .output()
         .expect("run hook");

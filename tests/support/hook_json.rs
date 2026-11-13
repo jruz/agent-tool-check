@@ -37,8 +37,6 @@ pub fn run_pre_tool_use_json(agent: &str, stdin_json: &str) -> Output {
     let binary = env!("CARGO_BIN_EXE_agent-hooks");
     let stdin = Stdio::from(stdin_file);
     Command::new(binary)
-        .arg("pre-tool-use")
-        .arg("--agent")
         .arg(agent)
         .stdin(stdin)
         .output()

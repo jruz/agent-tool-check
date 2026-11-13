@@ -1,17 +1,16 @@
 # agent-hooks
 
-Rust CLI that runs Claude Code, Codex, and Pi hooks. `pre-tool-use` is agent-specific; `stop` is shared.
+Rust CLI that runs the PreToolUse hook for Claude Code, Codex, and Pi.
 
 ## Usage
 
 ```sh
-agent-hooks pre-tool-use --agent claude # Claude PreToolUse hook (reads stdin)
-agent-hooks stop                        # Shared Stop hook
-agent-hooks pre-tool-use --agent codex  # Codex PreToolUse hook (reads stdin)
-agent-hooks pre-tool-use --agent pi     # Pi PreToolUse hook (reads stdin)
+agent-hooks claude # Claude PreToolUse hook (reads stdin)
+agent-hooks codex  # Codex PreToolUse hook (reads stdin)
+agent-hooks pi     # Pi PreToolUse hook (reads stdin)
 ```
 
-Configure each agent's hook settings to pass the matching `--agent` value for `pre-tool-use`. `stop` should call `agent-hooks stop` for Claude, Codex, and Pi.
+Configure each agent's PreToolUse hook to pass the matching agent.
 
 ## Release
 
@@ -23,8 +22,6 @@ Configure each agent's hook settings to pass the matching `--agent` value for `p
 
 - `~/.claude/settings.json`
 - `~/.codex/hooks.json`
-- `~/.codex/hooks/Stop`
-- `~/.codex/hooks/UserPromptSubmit`
 - `~/.pi/agent/settings.json`
 
 ## Tooling
@@ -80,7 +77,7 @@ See `scripts/denials-list/README.md` for report behavior.
 
 ```
 src/
-  main.rs                # clap CLI, dispatches subcommands, handles output and error logging
+  main.rs                # clap CLI, handles output and error logging
   pre_tool_use.rs        # PreToolUse hook orchestrator
   pre_tool_use/
     claude.rs            # Claude-specific payload parsing and response rendering
@@ -98,14 +95,8 @@ src/
       commit_msg.rs      # validate parsed git commit messages
       secrets.rs         # shared sensitive-file policy and read exceptions
       shell.rs           # shared shell parser, visitor, and execution context
-  stop.rs                # Stop hook orchestrator
-  stop/
-    slop_detector.rs     # run slop-detector binary
-    just_fix.rs          # run just fix
-    just_check.rs        # run just check
   shared/
-    agent.rs             # shared clap value enum for --agent
-    command.rs           # shared command output helpers
+    agent.rs             # shared clap value enum for the agent argument
     env.rs               # shared environment path helpers
     mod.rs               # shared module exports
     response.rs          # hook JSON response builders
@@ -114,9 +105,8 @@ src/
 
 ## Conventions
 
-- one file per hook action, named after the tool it wraps
-- hook modules return raw data, orchestrators handle blocking logic
-- provider-specific wire parsing stays at the event edge; shared modules hold policy and stop action logic
+- filter modules return raw data, the orchestrator handles blocking logic
+- provider-specific wire parsing stays at the event edge; shared modules hold policy logic
 - all Bash providers use one shell visitor; policies inspect parsed invocations, assignments, and redirects rather than raw command strings
 - local sandbox requirements target dependency-executing runtimes and package/build tools, not shells or generic launchers
 - sandbox exemptions apply only to sandbox requirements, not command or file restrictions
@@ -133,19 +123,12 @@ Claude Code hooks communicate via JSON on stdout:
 - **block**: `{"decision": "block", "reason": "..."}` — stops Claude and shows the reason
 - no output — hook passes silently
 
-Codex `pre-tool-use` deny responses use `hookSpecificOutput.permissionDecision = "deny"`.
-Codex `pre-tool-use` currently only handles `Bash` events.
+Codex deny responses use `hookSpecificOutput.permissionDecision = "deny"`.
+Codex currently only handles `Bash` events.
 
-Pi `pre-tool-use` accepts Pi's native `toolName` and `input` fields. Blocked
+Pi accepts Pi's native `toolName` and `input` fields. Blocked
 responses use `{ "block": true, "reason": "..." }`.
 
 ## Logging
 
 Errors are logged as JSONL to `~/.local/state/agent-hooks/hooks.log` from `main.rs`. If logging fails, errors fall back to stderr. Respects `XDG_STATE_HOME` if set.
-
-## Adding a Hook Action
-
-1. create `src/<event>/<action>.rs` with a `pub fn run()` returning the appropriate result
-2. add error enum with thiserror
-3. wire it into the event orchestrator (e.g. `stop.rs`)
-4. add the error variant to the orchestrator's error enum

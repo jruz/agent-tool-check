@@ -28,16 +28,12 @@ struct PiBlockResponse {
     reason: String,
 }
 
-pub fn stop_block(reason: String) -> Result<String, serde_json::Error> {
+pub fn pre_tool_use_claude_block(reason: String) -> Result<String, serde_json::Error> {
     let response = BlockResponse {
         decision: "block",
         reason,
     };
     serde_json::to_string(&response)
-}
-
-pub fn pre_tool_use_claude_block(reason: String) -> Result<String, serde_json::Error> {
-    stop_block(reason)
 }
 
 pub fn pre_tool_use_codex_block(reason: String) -> Result<String, serde_json::Error> {

@@ -1,38 +1,25 @@
-use std::env;
 use std::io::Write as _;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[test]
-fn requires_agent_for_pre_tool_use() {
+fn requires_agent() {
     let output = Command::new(env!("CARGO_BIN_EXE_agent-hooks"))
-        .arg("pre-tool-use")
         .output()
         .expect("run binary");
 
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("--agent"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("<AGENT>"));
 }
 
 #[test]
-fn stop_does_not_require_agent() {
-    let temp = tempfile::tempdir().expect("create temp dir");
-    let bin_dir = temp.path().join("bin");
-    std::fs::create_dir_all(&bin_dir).expect("create bin dir");
-    let slop_detector = bin_dir.join("slop-detector");
-    write_executable(&slop_detector, "#!/usr/bin/env bash\nexit 0\n");
-    let bin_path = bin_dir.as_path();
-    let path = path_with_bin(bin_path);
-    let temp_path = temp.path();
-
+fn rejects_unknown_agent() {
     let output = Command::new(env!("CARGO_BIN_EXE_agent-hooks"))
-        .arg("stop")
-        .current_dir(temp_path)
-        .env("PATH", path)
+        .arg("cursor")
         .output()
         .expect("run binary");
 
-    assert!(output.status.success());
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid value 'cursor'"));
 }
 
 #[test]
@@ -45,8 +32,6 @@ fn logs_pre_tool_use_agent() {
     let stdin = std::fs::File::open(stdin_path).expect("open stdin temp file");
 
     let output = Command::new(env!("CARGO_BIN_EXE_agent-hooks"))
-        .arg("pre-tool-use")
-        .arg("--agent")
         .arg("codex")
         .env("XDG_STATE_HOME", &state_home)
         .stdin(stdin)
@@ -80,8 +65,6 @@ fn logs_pre_tool_use_payload_shape() {
     let stdin = std::fs::File::open(stdin_path).expect("open stdin temp file");
 
     let output = Command::new(env!("CARGO_BIN_EXE_agent-hooks"))
-        .arg("pre-tool-use")
-        .arg("--agent")
         .arg("claude")
         .env("XDG_STATE_HOME", &state_home)
         .stdin(stdin)
@@ -103,33 +86,4 @@ fn logs_pre_tool_use_payload_shape() {
     assert!(log.contains(r#""tool_input_kind":"object""#));
     assert!(log.contains(r#""tool_input_keys":"unexpected""#));
     assert!(log.contains(top_level_keys));
-}
-
-#[cfg(unix)]
-fn write_executable(path: &Path, contents: &str) {
-    use std::os::unix::fs::PermissionsExt as _;
-
-    std::fs::write(path, contents).expect("write script");
-
-    let mut perms = std::fs::metadata(path).expect("stat script").permissions();
-    perms.set_mode(0o755);
-    std::fs::set_permissions(path, perms).expect("chmod script");
-}
-
-#[cfg(not(unix))]
-fn write_executable(path: &Path, contents: &str) {
-    std::fs::write(path, contents).expect("write script");
-}
-
-fn path_with_bin(bin_dir: &Path) -> String {
-    let mut paths = vec![PathBuf::from(bin_dir)];
-    if let Some(existing) = env::var_os("PATH") {
-        let existing_paths = env::split_paths(&existing);
-        paths.extend(existing_paths);
-    }
-
-    env::join_paths(paths)
-        .expect("join PATH")
-        .to_string_lossy()
-        .into_owned()
 }
