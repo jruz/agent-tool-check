@@ -4,6 +4,7 @@ use regex::Regex;
 use super::shell;
 
 const COMMIT_TITLE_PATTERN: &str = r"^\[(feat|bugs|refa|deps|tool)\] \S+.*: .+";
+const SHORT_VALUE_FLAGS: [char; 5] = ['m', 'F', 'C', 'c', 't'];
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -19,6 +20,15 @@ pub enum Error {
     Shell(#[from] shell::Error),
 }
 
+enum CommitOption {
+    Message(Option<String>),
+    MessageFromStdin,
+    Other,
+    Skip,
+}
+
+type Parsed<'arguments> = (CommitOption, &'arguments [Option<String>]);
+
 pub fn run(arguments: &[&ast::Word], stdin: Option<&str>) -> Result<(), Error> {
     let values = arguments
         .iter()
@@ -33,32 +43,134 @@ pub fn run(arguments: &[&ast::Word], stdin: Option<&str>) -> Result<(), Error> {
     {
         return Err(Error::Coauthor);
     }
-    if !should_skip(&values) {
-        check_title(&values, stdin)?;
-    }
-    Ok(())
-}
-
-fn should_skip(arguments: &[Option<String>]) -> bool {
-    match arguments.split_first() {
-        Some((Some(argument), remaining)) => match argument.as_str() {
-            "--no-edit" | "--fixup" => true,
-            argument if argument.starts_with("--fixup=") => true,
-            "-m" | "--message" | "--trailer" | "--author" | "-F" | "--file" => {
-                match remaining.split_first() {
-                    Some((_, remaining)) => should_skip(remaining),
-                    None => false,
-                }
-            }
-            _ => should_skip(remaining),
-        },
-        Some((None, remaining)) => should_skip(remaining),
-        None => false,
+    let options = commit_options(&values);
+    let skips_title = options
+        .iter()
+        .any(|option| matches!(option, CommitOption::Skip));
+    if skips_title {
+        Ok(())
+    } else {
+        check_title(&options, stdin)
     }
 }
 
-fn check_title(arguments: &[Option<String>], stdin: Option<&str>) -> Result<(), Error> {
-    let title = extract_title(arguments, stdin).ok_or(Error::MissingTitle)?;
+fn commit_options(arguments: &[Option<String>]) -> Vec<CommitOption> {
+    let Some((argument, remaining)) = arguments.split_first() else {
+        return Vec::new();
+    };
+    let (option, remaining) = match argument.as_deref() {
+        Some(argument) => parse_option(argument, remaining),
+        None => (CommitOption::Other, remaining),
+    };
+    let later_options = commit_options(remaining);
+    std::iter::once(option).chain(later_options).collect()
+}
+
+fn parse_option<'arguments>(
+    argument: &str,
+    remaining: &'arguments [Option<String>],
+) -> Parsed<'arguments> {
+    match argument {
+        "--no-edit" | "--fixup" => (CommitOption::Skip, remaining),
+        "--message" => separate_message(remaining),
+        "--file" => separate_file(remaining),
+        "--trailer" | "--author" => separate_other(remaining),
+        _ => attached_option(argument, remaining),
+    }
+}
+
+fn separate_message(remaining: &[Option<String>]) -> Parsed<'_> {
+    let (value, remaining) = next_value(remaining);
+    (CommitOption::Message(value), remaining)
+}
+
+fn separate_file(remaining: &[Option<String>]) -> Parsed<'_> {
+    let (value, remaining) = next_value(remaining);
+    let path = value.as_deref();
+    (file_message(path), remaining)
+}
+
+fn separate_other(remaining: &[Option<String>]) -> Parsed<'_> {
+    let (_, remaining) = next_value(remaining);
+    (CommitOption::Other, remaining)
+}
+
+fn attached_option<'arguments>(
+    argument: &str,
+    remaining: &'arguments [Option<String>],
+) -> Parsed<'arguments> {
+    if argument.starts_with("--fixup=") {
+        return (CommitOption::Skip, remaining);
+    }
+    if let Some(message) = argument.strip_prefix("--message=") {
+        let text = message.to_owned();
+        let value = Some(text);
+        return (CommitOption::Message(value), remaining);
+    }
+    if let Some(file) = argument.strip_prefix("--file=") {
+        let path = Some(file);
+        return (file_message(path), remaining);
+    }
+    if argument.starts_with("--") {
+        return (CommitOption::Other, remaining);
+    }
+    match argument.strip_prefix('-') {
+        Some(flags) if !flags.is_empty() => short_cluster(flags, remaining),
+        _ => (CommitOption::Other, remaining),
+    }
+}
+
+fn short_cluster<'arguments>(
+    flags: &str,
+    remaining: &'arguments [Option<String>],
+) -> Parsed<'arguments> {
+    let mut characters = flags.chars();
+    let Some(flag) = characters.find(|flag| SHORT_VALUE_FLAGS.contains(flag)) else {
+        return (CommitOption::Other, remaining);
+    };
+    let attached = characters.as_str();
+    let (value, remaining) = short_value(attached, remaining);
+    (short_option(flag, value), remaining)
+}
+
+fn short_value<'arguments>(
+    attached: &str,
+    remaining: &'arguments [Option<String>],
+) -> (Option<String>, &'arguments [Option<String>]) {
+    if attached.is_empty() {
+        return next_value(remaining);
+    }
+    let text = attached.to_owned();
+    (Some(text), remaining)
+}
+
+fn short_option(flag: char, value: Option<String>) -> CommitOption {
+    match flag {
+        'm' => CommitOption::Message(value),
+        'F' => {
+            let path = value.as_deref();
+            file_message(path)
+        }
+        _ => CommitOption::Other,
+    }
+}
+
+fn next_value(remaining: &[Option<String>]) -> (Option<String>, &[Option<String>]) {
+    match remaining.split_first() {
+        Some((value, remaining)) => (value.clone(), remaining),
+        None => (None, remaining),
+    }
+}
+
+fn file_message(path: Option<&str>) -> CommitOption {
+    match path {
+        Some("-") => CommitOption::MessageFromStdin,
+        _ => CommitOption::Message(None),
+    }
+}
+
+fn check_title(options: &[CommitOption], stdin: Option<&str>) -> Result<(), Error> {
+    let title = extract_title(options, stdin).ok_or(Error::MissingTitle)?;
     let expression = Regex::new(COMMIT_TITLE_PATTERN)?;
     if expression.is_match(title) {
         Ok(())
@@ -68,22 +180,16 @@ fn check_title(arguments: &[Option<String>], stdin: Option<&str>) -> Result<(), 
 }
 
 fn extract_title<'message>(
-    arguments: &'message [Option<String>],
+    options: &'message [CommitOption],
     stdin: Option<&'message str>,
 ) -> Option<&'message str> {
-    match arguments.split_first() {
-        Some((Some(argument), remaining)) => match argument.as_str() {
-            "-m" | "--message" => remaining.first()?.as_deref()?.lines().next(),
-            "-F" | "--file" if remaining.first()?.as_deref()? == "-" => stdin?.lines().next(),
-            "-F-" | "--file=-" => stdin?.lines().next(),
-            argument if argument.starts_with("--message=") => {
-                argument.strip_prefix("--message=")?.lines().next()
-            }
-            argument if argument.starts_with("-m") => argument.strip_prefix("-m")?.lines().next(),
-            _ => extract_title(remaining, stdin),
-        },
-        Some((None, remaining)) => extract_title(remaining, stdin),
-        None => None,
+    let source = options
+        .iter()
+        .find(|option| !matches!(option, CommitOption::Other))?;
+    match source {
+        CommitOption::Message(message) => message.as_deref()?.lines().next(),
+        CommitOption::MessageFromStdin => stdin?.lines().next(),
+        CommitOption::Other | CommitOption::Skip => None,
     }
 }
 
@@ -97,21 +203,30 @@ fn message_text(word: &ast::Word) -> Result<Option<String>, Error> {
 }
 
 fn heredoc_word(pieces: &[word::WordPieceWithSource]) -> Result<Option<String>, Error> {
-    match pieces {
-        [piece] => match &piece.piece {
-            word::WordPiece::DoubleQuotedSequence(nested) => heredoc_word(nested),
-            word::WordPiece::CommandSubstitution(source) => heredoc_source(source),
-            word::WordPiece::Text(_)
-            | word::WordPiece::SingleQuotedText(_)
-            | word::WordPiece::AnsiCQuotedText(_)
-            | word::WordPiece::GettextDoubleQuotedSequence(_)
-            | word::WordPiece::TildeExpansion(_)
-            | word::WordPiece::ParameterExpansion(_)
-            | word::WordPiece::BackquotedCommandSubstitution(_)
-            | word::WordPiece::EscapeSequence(_)
-            | word::WordPiece::ArithmeticExpression(_) => Ok(None),
-        },
-        _ => Ok(None),
+    let texts = pieces
+        .iter()
+        .map(heredoc_piece)
+        .collect::<Result<Option<Vec<_>>, _>>()?;
+    let text = texts.map(|parts| parts.concat());
+    Ok(text)
+}
+
+fn heredoc_piece(piece: &word::WordPieceWithSource) -> Result<Option<String>, Error> {
+    match &piece.piece {
+        word::WordPiece::Text(text) | word::WordPiece::SingleQuotedText(text) => {
+            let owned = text.clone();
+            let value = Some(owned);
+            Ok(value)
+        }
+        word::WordPiece::DoubleQuotedSequence(nested) => heredoc_word(nested),
+        word::WordPiece::CommandSubstitution(source) => heredoc_source(source),
+        word::WordPiece::AnsiCQuotedText(_)
+        | word::WordPiece::GettextDoubleQuotedSequence(_)
+        | word::WordPiece::TildeExpansion(_)
+        | word::WordPiece::ParameterExpansion(_)
+        | word::WordPiece::BackquotedCommandSubstitution(_)
+        | word::WordPiece::EscapeSequence(_)
+        | word::WordPiece::ArithmeticExpression(_) => Ok(None),
     }
 }
 
