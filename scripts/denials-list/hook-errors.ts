@@ -12,6 +12,7 @@ const bashReasons = new Set([
   "Never print environment variables",
   "Shell option requires a value",
   "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+  "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
   "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available.",
   "Use bare `sandbox`, not an absolute or relative wrapper path.",
   "Dynamic executable names must be invoked through `sandbox`",

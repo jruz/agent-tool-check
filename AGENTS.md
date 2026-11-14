@@ -116,6 +116,23 @@ src/
 - each module has its own thiserror enum
 - event modules use `self_named_module_files` style, `shared/` uses `mod.rs`
 
+## Variable Output Policy
+
+- Output blocks underscore-separated name parts `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, and `PASSPHRASE` case-insensitively.
+- Ordinary named-variable output is permitted.
+- Modified expansions also check embedded variable expansions.
+- Assignments and non-output variable use are not blocked by this rule.
+- Indirect expansions check only the written name without resolving its target.
+- CamelCase names such as `apiToken` do not match sensitive-name parts.
+- This guards against accidental disclosure rather than adversarial bypasses.
+- Full environment dumps remain blocked.
+- Shell tracing remains blocked.
+- Arithmetic output remains blocked.
+- Tilde output remains blocked.
+- Positional output remains blocked.
+- Special parameters other than exit status remain blocked.
+- Variable-name enumeration and array-key enumeration remain blocked.
+
 ## Hook Protocol
 
 Claude Code hooks communicate via JSON on stdout:

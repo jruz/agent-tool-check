@@ -9,7 +9,7 @@ pub enum Error {
     #[error("Shell option requires a value")]
     MissingOptionValue,
     #[error(
-        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?)."
+        "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked."
     )]
     RestrictedOutput,
     #[error(transparent)]
@@ -38,10 +38,9 @@ pub fn check_output(output: shell::Output<'_>) -> Result<(), Error> {
 }
 
 fn check_output_expansion(pieces: &[word::WordPieceWithSource]) -> Result<(), Error> {
-    if pieces.iter().any(|piece| prints_variable(&piece.piece)) {
-        return Err(Error::RestrictedOutput);
-    }
-    Ok(())
+    pieces
+        .iter()
+        .try_for_each(|piece| check_output_piece(&piece.piece))
 }
 
 fn check_output_word(word: &ast::Word) -> Result<(), Error> {
@@ -50,44 +49,57 @@ fn check_output_word(word: &ast::Word) -> Result<(), Error> {
     check_output(output)
 }
 
-fn prints_variable(piece: &word::WordPiece) -> bool {
+fn check_output_piece(piece: &word::WordPiece) -> Result<(), Error> {
     match piece {
-        word::WordPiece::ParameterExpansion(expression) => !is_allowed_parameter(expression),
-        word::WordPiece::ArithmeticExpression(_) | word::WordPiece::TildeExpansion(_) => true,
-        word::WordPiece::DoubleQuotedSequence(pieces)
-        | word::WordPiece::GettextDoubleQuotedSequence(pieces) => {
-            pieces.iter().any(|nested| prints_variable(&nested.piece))
+        word::WordPiece::ParameterExpansion(expression) => check_output_parameter(expression),
+        word::WordPiece::ArithmeticExpression(_) | word::WordPiece::TildeExpansion(_) => {
+            Err(Error::RestrictedOutput)
         }
+        word::WordPiece::DoubleQuotedSequence(pieces)
+        | word::WordPiece::GettextDoubleQuotedSequence(pieces) => check_output_expansion(pieces),
         word::WordPiece::Text(_)
         | word::WordPiece::SingleQuotedText(_)
         | word::WordPiece::AnsiCQuotedText(_)
         | word::WordPiece::EscapeSequence(_)
         | word::WordPiece::CommandSubstitution(_)
-        | word::WordPiece::BackquotedCommandSubstitution(_) => false,
+        | word::WordPiece::BackquotedCommandSubstitution(_) => Ok(()),
     }
 }
 
-fn is_allowed_parameter(expression: &word::ParameterExpr) -> bool {
-    matches!(
-        expression,
-        word::ParameterExpr::Parameter {
-            parameter: word::Parameter::Named(name),
-            indirect: false,
-        } if matches!(name.as_str(), "HOME" | "USER" | "PATH") || is_lowercase_name(name)
-    ) || matches!(
-        expression,
-        word::ParameterExpr::Parameter {
-            parameter: word::Parameter::Special(word::SpecialParameter::LastExitStatus),
-            indirect: false,
+fn check_output_parameter(expression: &word::ParameterExpr) -> Result<(), Error> {
+    match shell::expression_parameter(expression) {
+        Some(word::Parameter::Named(name) | word::Parameter::NamedWithAllIndices { name, .. }) => {
+            check_output_name(name)?;
         }
-    )
+        Some(word::Parameter::NamedWithIndex { name, index }) => {
+            check_output_name(name)?;
+            check_output_value(index)?;
+        }
+        Some(word::Parameter::Special(word::SpecialParameter::LastExitStatus)) => {}
+        Some(word::Parameter::Positional(_) | word::Parameter::Special(_)) | None => {
+            return Err(Error::RestrictedOutput);
+        }
+    }
+    shell::parameter_words(expression)
+        .into_iter()
+        .try_for_each(check_output_value)
 }
 
-fn is_lowercase_name(name: &str) -> bool {
-    name.chars().any(|character| character.is_ascii_lowercase())
-        && name.chars().all(|character| {
-            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
-        })
+fn check_output_value(value: &str) -> Result<(), Error> {
+    let pieces = shell::parse_word(value)?;
+    check_output_expansion(&pieces)
+}
+
+fn check_output_name(name: &str) -> Result<(), Error> {
+    let sensitive = name.split('_').any(|part| {
+        ["TOKEN", "KEY", "SECRET", "PASSWORD", "PASSPHRASE"]
+            .iter()
+            .any(|sensitive| part.eq_ignore_ascii_case(sensitive))
+    });
+    if sensitive {
+        return Err(Error::RestrictedOutput);
+    }
+    Ok(())
 }
 
 fn check_binding_output(arguments: &[&ast::Word]) -> Result<(), Error> {

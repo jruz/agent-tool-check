@@ -264,7 +264,7 @@ fn preserves_quotes_and_escapes_in_nested_shell_commands() {
             r#"docker exec container sh -c 'printf "%s" "$TOKEN"'"#,
             r#"sh -c 'printf "%s" '\''literal'\''"$TOKEN"'"#,
         ],
-        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+        "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
     );
     assert_blocked(
         &[r#"sh -c 'cat ".env"'"#, r"sh -c 'cat '\''.env'\'''"],
@@ -636,7 +636,7 @@ fn blocks_direct_variable_output_without_blocking_variable_use() {
             "cat <<EOF\n$TOKEN\nEOF",
             "cat <<< \"$TOKEN\"",
         ],
-        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+        "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
     );
 }
 
@@ -691,14 +691,27 @@ fn bracket_predicates_do_not_allow_dynamic_executables() {
     );
     assert_blocked(
         &["[ -n \"$TOKEN\" ]; echo \"$TOKEN\""],
-        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+        "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
     );
 }
 
 #[test]
-fn allows_only_explicitly_approved_variable_output() {
+fn allows_ordinary_variable_output() {
+    let fallback = "missing";
+    let default_value = format!("echo \"${{file:-{fallback}}}\"");
     assert_allowed(&[
+        &default_value,
         "echo $HOME $USER $PATH",
+        "echo \"$USERNAME $PWD $apiToken $MONKEY $TOKENIZER $KEYBOARD\"",
+        "echo \"${!file} ${!HOME} ${file[0]} ${HOME[0]}\"",
+        "echo \"${HOME/$USER/literal} ${file^^}\"",
+        "echo \"${#file} ${file:0:2} ${file%txt}\"",
+        "API_TOKEN=dummy git status",
+        "cat <<EOF\n$PROJECT_NAME\nEOF",
+        "cat <<< \"$PROJECT_NAME\"",
+        "sandbox bash -c 'echo \"$PROJECT_NAME\"'",
+        "ssh host 'echo \"$PROJECT_NAME\"'",
+        "docker exec container echo \"$PROJECT_NAME\"",
         "echo \"${HOME}/project ${USER} ${PATH}\"",
         "printf '%s\\n' \"$HOME\" \"$USER\" \"$PATH\"",
         "print -r -- \"$HOME\"",
@@ -729,33 +742,38 @@ fn allows_plain_lowercase_variable_output() {
 }
 
 #[test]
-fn variable_allowlist_does_not_allow_other_expansions_or_dumps() {
+fn sensitive_names_and_unsupported_expansions_remain_blocked() {
     assert_blocked(
         &[
             "echo \"$HOME $TOKEN\"",
             "printf '%s\\n' \"$USER\" \"$TOKEN\"",
             "echo \"$HOME_TOKEN\"",
-            "echo \"$USERNAME\"",
-            "echo \"$PWD\"",
-            "echo \"$apiToken\"",
+            "echo \"$token $api_token $Api_ToKeN\"",
+            "echo \"$KEY $SECRET $PASSWORD $PASSPHRASE\"",
+            "echo \"$key $secret $password $passphrase\"",
+            "echo \"$SERVICE_KEY_ID $secret_value $user_password $ssh_passphrase\"",
+            "echo \"${API_TOKEN:-missing} ${api_token^^}\"",
+            "echo \"${file:-${api_token}}\"",
+            "echo \"${file:=$SECRET}\"",
+            "echo \"${file:+$PASSWORD}\"",
+            "echo \"${file:?$PASSPHRASE}\"",
+            "echo \"${API_TOKEN[0]} ${API_TOKEN[@]} ${#API_TOKEN}\"",
+            "echo \"${file[$TOKEN]}\"",
+            "echo \"${file:0:$TOKEN}\"",
             "echo \"$_TOKEN\"",
-            "echo \"${!file}\"",
             "echo \"${file:-$TOKEN}\"",
             "echo \"${file/$file/$TOKEN}\"",
-            "echo \"${file[0]}\"",
             "echo \"$1\"",
             "echo \"$@\"",
             "echo \"$*\"",
             "echo \"$((token))\"",
-            "echo \"${!HOME}\"",
             "echo \"${HOME:-$TOKEN}\"",
             "echo \"${HOME/$USER/$TOKEN}\"",
-            "echo \"${HOME[0]}\"",
             "echo \"$((TOKEN))\"",
             "cat <<EOF\n$HOME $TOKEN\nEOF",
             "cat <<< \"$HOME $TOKEN\"",
         ],
-        "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+        "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
     );
     assert_blocked(
         &["printenv HOME", "env", "set -x; echo \"$HOME\""],

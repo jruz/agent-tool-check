@@ -796,22 +796,23 @@ fn check_parameter_expression(
     expression: &word::ParameterExpr,
 ) -> Result<(), Error> {
     check_parameter(context, expression)?;
+    parameter_words(expression)
+        .into_iter()
+        .try_for_each(|value| check_embedded_word(context, value))
+}
+
+pub fn parameter_words(expression: &word::ParameterExpr) -> Vec<&str> {
     match expression {
         word::ParameterExpr::UseDefaultValues { default_value, .. }
         | word::ParameterExpr::AssignDefaultValues { default_value, .. } => {
-            let default_value = default_value.as_deref();
-            check_optional_embedded_word(context, default_value)
+            default_value.as_deref().into_iter().collect()
         }
         word::ParameterExpr::IndicateErrorIfNullOrUnset { error_message, .. } => {
-            let error_message = error_message.as_deref();
-            check_optional_embedded_word(context, error_message)
+            error_message.as_deref().into_iter().collect()
         }
         word::ParameterExpr::UseAlternativeValue {
             alternative_value, ..
-        } => {
-            let alternative_value = alternative_value.as_deref();
-            check_optional_embedded_word(context, alternative_value)
-        }
+        } => alternative_value.as_deref().into_iter().collect(),
         word::ParameterExpr::RemoveSmallestSuffixPattern { pattern, .. }
         | word::ParameterExpr::RemoveLargestSuffixPattern { pattern, .. }
         | word::ParameterExpr::RemoveSmallestPrefixPattern { pattern, .. }
@@ -820,35 +821,32 @@ fn check_parameter_expression(
         | word::ParameterExpr::UppercasePattern { pattern, .. }
         | word::ParameterExpr::LowercaseFirstChar { pattern, .. }
         | word::ParameterExpr::LowercasePattern { pattern, .. } => {
-            let pattern = pattern.as_deref();
-            check_optional_embedded_word(context, pattern)
+            pattern.as_deref().into_iter().collect()
         }
         word::ParameterExpr::Substring { offset, length, .. } => {
-            check_embedded_word(context, &offset.value)?;
-            match length {
-                Some(length) => check_embedded_word(context, &length.value),
-                None => Ok(()),
-            }
+            let offset = offset.value.as_str();
+            let length = length.iter().map(|length| length.value.as_str());
+            std::iter::once(offset).chain(length).collect()
         }
         word::ParameterExpr::ReplaceSubstring {
             pattern,
             replacement,
             ..
         } => {
-            check_embedded_word(context, pattern)?;
+            let pattern = pattern.as_str();
             let replacement = replacement.as_deref();
-            check_optional_embedded_word(context, replacement)
+            std::iter::once(pattern).chain(replacement).collect()
         }
         word::ParameterExpr::Parameter { .. }
         | word::ParameterExpr::ParameterLength { .. }
         | word::ParameterExpr::Transform { .. }
         | word::ParameterExpr::VariableNames { .. }
-        | word::ParameterExpr::MemberKeys { .. } => Ok(()),
+        | word::ParameterExpr::MemberKeys { .. } => Vec::new(),
     }
 }
 
-fn check_parameter(context: &Context, expression: &word::ParameterExpr) -> Result<(), Error> {
-    let parameter = match expression {
+pub fn expression_parameter(expression: &word::ParameterExpr) -> Option<&word::Parameter> {
+    match expression {
         word::ParameterExpr::Parameter { parameter, .. }
         | word::ParameterExpr::UseDefaultValues { parameter, .. }
         | word::ParameterExpr::AssignDefaultValues { parameter, .. }
@@ -867,9 +865,11 @@ fn check_parameter(context: &Context, expression: &word::ParameterExpr) -> Resul
         | word::ParameterExpr::LowercasePattern { parameter, .. }
         | word::ParameterExpr::ReplaceSubstring { parameter, .. } => Some(parameter),
         word::ParameterExpr::VariableNames { .. } | word::ParameterExpr::MemberKeys { .. } => None,
-    };
+    }
+}
 
-    match parameter {
+fn check_parameter(context: &Context, expression: &word::ParameterExpr) -> Result<(), Error> {
+    match expression_parameter(expression) {
         Some(word::Parameter::NamedWithIndex { index, .. }) => check_embedded_word(context, index),
         Some(
             word::Parameter::Positional(_)
@@ -878,13 +878,6 @@ fn check_parameter(context: &Context, expression: &word::ParameterExpr) -> Resul
             | word::Parameter::NamedWithAllIndices { .. },
         )
         | None => Ok(()),
-    }
-}
-
-fn check_optional_embedded_word(context: &Context, value: Option<&str>) -> Result<(), Error> {
-    match value {
-        Some(value) => check_embedded_word(context, value),
-        None => Ok(()),
     }
 }
 

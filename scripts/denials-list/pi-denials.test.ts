@@ -5,6 +5,8 @@ const content = (text: string) => [{ type: "text", text }];
 
 test.each([
   "Never print environment variables",
+  "Variable output permits plain lowercase names, HOME, USER, PATH, and exit status ($?).",
+  "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
   "Access to sensitive file blocked",
   "Could not inspect this command because parsing failed.",
   "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available.",
