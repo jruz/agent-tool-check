@@ -696,6 +696,52 @@ fn bracket_predicates_do_not_allow_dynamic_executables() {
 }
 
 #[test]
+fn allows_ssh_metadata_reads_and_edits_and_public_key_reads() {
+    assert_allowed(&[
+        "cat ~/.ssh/known_hosts ~/.ssh/authorized_keys",
+        "cat /home/user/.ssh/known_hosts /home/user/.ssh/authorized_keys",
+        "rg host ~/.ssh/known_hosts",
+        "cat ~/.ssh/id_ed25519.pub public-key.pub",
+        "printf '%s\\n' 'dummy host entry' >> ~/.ssh/known_hosts",
+        "printf '%s\\n' 'dummy public key' >> ~/.ssh/authorized_keys",
+        "sed -i 's/old/new/' ~/.ssh/known_hosts",
+        "sed -i 's/old/new/' ~/.ssh/authorized_keys",
+        "tee ~/.ssh/known_hosts < hosts.txt",
+        "tee ~/.ssh/authorized_keys < public-key.pub",
+        "ssh host 'cat ~/.ssh/known_hosts'",
+        "docker exec container cat /home/user/.ssh/authorized_keys",
+    ]);
+}
+
+#[test]
+fn ssh_metadata_exceptions_do_not_allow_private_keys_or_other_sensitive_files() {
+    assert_blocked(
+        &[
+            "cat ~/.ssh/known_hosts ~/.ssh/id_ed25519",
+            "cat ~/.ssh/authorized_keys ~/.ssh/id_rsa",
+            "cat ~/.ssh/id_ed25519.pub ~/.ssh/id_ed25519",
+            "cat ~/.ssh/known_hosts.bak",
+            "cat ~/.ssh/authorized_keys.bak",
+            "cat ~/.ssh/known_hosts/../id_rsa",
+            "cat ~/.ssh/known_hosts; cat ~/.ssh/id_rsa",
+            "cat ~/.ssh/authorized_keys > ~/.ssh/id_rsa",
+            "tee ~/.ssh/known_hosts < ~/.ssh/id_rsa",
+            "sed -i 's/old/new/' ~/.ssh/authorized_keys ~/.ssh/id_rsa",
+            "ssh host 'cat ~/.ssh/known_hosts ~/.ssh/id_rsa'",
+            "docker exec container cat /home/user/.ssh/authorized_keys /home/user/.ssh/id_rsa",
+        ],
+        "Access to sensitive file blocked",
+    );
+    assert_blocked(
+        &[
+            "cat ~/.ssh/known_hosts .env",
+            "cat ~/.ssh/authorized_keys .env",
+        ],
+        "Never access .env files directly",
+    );
+}
+
+#[test]
 fn allows_ordinary_variable_output() {
     let fallback = "missing";
     let default_value = format!("echo \"${{file:-{fallback}}}\"");

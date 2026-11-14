@@ -103,7 +103,10 @@ fn is_env_exception(file: &path::Path) -> bool {
 }
 
 fn is_ssh_exception(file: &path::Path) -> bool {
-    file.ends_with(".ssh/config") || file.extension().is_some_and(|extension| extension == "pub")
+    [".ssh/config", ".ssh/known_hosts", ".ssh/authorized_keys"]
+        .iter()
+        .any(|suffix| file.ends_with(suffix))
+        || file.extension().is_some_and(|extension| extension == "pub")
 }
 
 fn is_system_secret(file: &path::Path) -> bool {

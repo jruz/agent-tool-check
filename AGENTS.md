@@ -116,6 +116,14 @@ src/
 - each module has its own thiserror enum
 - event modules use `self_named_module_files` style, `shared/` uses `mod.rs`
 
+## SSH File Access
+
+- Read and edit `.ssh/known_hosts`.
+- Read and edit `.ssh/authorized_keys`.
+- Read public-key files with the `.pub` suffix.
+- Private-key access remains blocked.
+- An allowed operand does not exempt another sensitive operand.
+
 ## Variable Output Policy
 
 - Output blocks underscore-separated name parts `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, and `PASSPHRASE` case-insensitively.
