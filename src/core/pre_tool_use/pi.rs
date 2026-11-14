@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
 
-use crate::shared::response;
+use crate::libs::response;
 
 use super::filters;
 

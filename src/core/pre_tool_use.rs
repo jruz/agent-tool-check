@@ -7,18 +7,11 @@ use std::collections::HashMap;
 use std::io::{self, Read as _};
 
 use serde_json::Value;
-use thiserror::Error;
 
-use crate::shared::agent::{self, Agent};
+use crate::core::agent::{self, Agent};
+use crate::utils::{failure, output};
 
-#[derive(Error, Debug)]
-#[error("{reason}")]
-pub struct PreToolUseError {
-    log_attributes: HashMap<String, String>,
-    reason: String,
-}
-
-pub fn run(agent: Agent) -> Result<Option<String>, PreToolUseError> {
+pub fn run(agent: Agent) -> Result<output::Output, failure::Error> {
     let stdin = match read_stdin() {
         Ok(stdin) => stdin,
         Err(err) => {
@@ -30,16 +23,21 @@ pub fn run(agent: Agent) -> Result<Option<String>, PreToolUseError> {
     let log_attributes = payload_log_attributes(agent, &stdin);
 
     match run_agent(agent, &stdin) {
-        Ok(output) => Ok(output),
+        Ok(response) => {
+            let text = match response {
+                Some(response) => format!("{response}\n"),
+                None => String::new(),
+            };
+            Ok(output::Output {
+                success: true,
+                text,
+            })
+        }
         Err(reason) => {
             let error = pre_tool_use_error(log_attributes, reason);
             Err(error)
         }
     }
-}
-
-pub fn log_attributes(error: &PreToolUseError) -> HashMap<String, String> {
-    error.log_attributes.clone()
 }
 
 fn read_stdin() -> Result<String, io::Error> {
@@ -76,7 +74,7 @@ fn map_pi_error(stdin: &str) -> Result<Option<String>, String> {
     }
 }
 
-fn io_error(agent: Agent, err: &io::Error) -> PreToolUseError {
+fn io_error(agent: Agent, err: &io::Error) -> failure::Error {
     let attributes = base_log_attributes(agent);
     let reason = io_reason(err);
     pre_tool_use_error(attributes, reason)
@@ -86,11 +84,8 @@ fn io_reason(err: &io::Error) -> String {
     format!("failed to read PreToolUse stdin: {err}")
 }
 
-fn pre_tool_use_error(log_attributes: HashMap<String, String>, reason: String) -> PreToolUseError {
-    PreToolUseError {
-        log_attributes,
-        reason,
-    }
+fn pre_tool_use_error(attributes: HashMap<String, String>, reason: String) -> failure::Error {
+    failure::Error { attributes, reason }
 }
 
 fn base_log_attributes(agent: Agent) -> HashMap<String, String> {

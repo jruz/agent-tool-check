@@ -1,7 +1,5 @@
-#[path = "support/hook_json.rs"]
-mod hook_json;
+use crate::utils::hook_json;
 
-const AGENTS: [&str; 3] = ["claude", "codex", "pi"];
 const SANDBOX_REASON: Option<&str> = Some(
     "Must be prefixed by `sandbox` (e.g. `sandbox cargo build`). Use `just` recipes when available.",
 );
@@ -57,34 +55,31 @@ const DEPENDENCY_EXECUTABLES: &[&str] = &[
     "yarnpkg",
 ];
 
-fn assert_decision(command: &str, expected: Option<&str>) {
-    for agent in AGENTS {
-        let input = if agent == "pi" {
-            serde_json::json!({"toolName": "bash", "input": {"command": command}})
-        } else {
-            serde_json::json!({"tool_name": "Bash", "tool_input": {"command": command}})
-        };
-        let json = input.to_string();
-        let output = hook_json::run_pre_tool_use_json(agent, &json);
-        assert!(output.status.success(), "{agent}: {command}");
-        assert!(
-            output.stderr.is_empty(),
-            "{agent}: {command}: {:?}",
-            output.stderr
-        );
-        let reason = hook_json::blocked_reason(&output);
-        assert_eq!(reason.as_deref(), expected, "{agent}: {command}");
-    }
+fn assert_decision(agent: &str, command: &str, expected: Option<&str>) {
+    let input = if agent == "pi" {
+        serde_json::json!({"toolName": "bash", "input": {"command": command}})
+    } else {
+        serde_json::json!({"tool_name": "Bash", "tool_input": {"command": command}})
+    };
+    let json = input.to_string();
+    let output = hook_json::run_pre_tool_use_json(agent, &json);
+    assert!(output.status.success(), "{agent}: {command}");
+    assert!(
+        output.stderr.is_empty(),
+        "{agent}: {command}: {:?}",
+        output.stderr
+    );
+    let reason = hook_json::blocked_reason(&output);
+    assert_eq!(reason.as_deref(), expected, "{agent}: {command}");
 }
 
-fn assert_requires_sandbox(command: &str) {
-    assert_decision(command, SANDBOX_REASON);
+fn assert_requires_sandbox(agent: &str, command: &str) {
+    assert_decision(agent, command, SANDBOX_REASON);
     let sandboxed = format!("sandbox {command}");
-    assert_decision(&sandboxed, None);
+    assert_decision(agent, &sandboxed, None);
 }
 
-#[test]
-fn dependency_executables_require_sandbox_in_common_invocation_forms() {
+pub fn dependency_executables_require_sandbox_in_common_invocation_forms(agent: &str) {
     for executable in DEPENDENCY_EXECUTABLES {
         let commands = [
             format!("{executable} --version"),
@@ -101,13 +96,12 @@ fn dependency_executables_require_sandbox_in_common_invocation_forms() {
             format!("nix-shell --run '{executable} --version'"),
         ];
         for command in commands {
-            assert_requires_sandbox(&command);
+            assert_requires_sandbox(agent, &command);
         }
     }
 }
 
-#[test]
-fn dependency_execution_subcommands_and_flags_require_sandbox() {
+pub fn dependency_execution_subcommands_and_flags_require_sandbox(agent: &str) {
     let commands = [
         "bun install",
         "bun add lodash",
@@ -194,12 +188,11 @@ fn dependency_execution_subcommands_and_flags_require_sandbox() {
         "rebar3 compile",
     ];
     for command in commands {
-        assert_requires_sandbox(command);
+        assert_requires_sandbox(agent, command);
     }
 }
 
-#[test]
-fn dependency_executables_are_checked_in_shell_pipelines_and_substitutions() {
+pub fn dependency_executables_are_checked_in_shell_pipelines_and_substitutions(agent: &str) {
     for executable in DEPENDENCY_EXECUTABLES {
         let commands = [
             format!("echo ready; {executable} --version"),
@@ -210,15 +203,14 @@ fn dependency_executables_are_checked_in_shell_pipelines_and_substitutions() {
             format!("({executable} --version)"),
         ];
         for command in commands {
-            assert_decision(&command, SANDBOX_REASON);
+            assert_decision(agent, &command, SANDBOX_REASON);
             let sandboxed = format!("sandbox bash -c '{command}'");
-            assert_decision(&sandboxed, None);
+            assert_decision(agent, &sandboxed, None);
         }
     }
 }
 
-#[test]
-fn dependency_names_in_text_and_unrelated_executables_are_allowed() {
+pub fn dependency_names_in_text_and_unrelated_executables_are_allowed(agent: &str) {
     for executable in DEPENDENCY_EXECUTABLES {
         let commands = [
             format!("echo '{executable} install'"),
@@ -227,7 +219,7 @@ fn dependency_names_in_text_and_unrelated_executables_are_allowed() {
             format!("/usr/bin/{executable}-helper --version"),
         ];
         for command in commands {
-            assert_decision(&command, None);
+            assert_decision(agent, &command, None);
         }
     }
     let commands = [
@@ -249,25 +241,23 @@ fn dependency_names_in_text_and_unrelated_executables_are_allowed() {
         "just rust-test",
     ];
     for command in commands {
-        assert_decision(command, None);
+        assert_decision(agent, command, None);
     }
 }
 
-#[test]
-fn local_sandbox_requirements_do_not_apply_to_remote_or_container_execution() {
+pub fn local_sandbox_requirements_do_not_apply_to_remote_or_container_execution(agent: &str) {
     for executable in DEPENDENCY_EXECUTABLES {
         let commands = [
             format!("ssh host {executable} --version"),
             format!("docker exec container {executable} --version"),
         ];
         for command in commands {
-            assert_decision(&command, None);
+            assert_decision(agent, &command, None);
         }
     }
 }
 
-#[test]
-fn shells_and_generic_launchers_do_not_require_sandbox() {
+pub fn shells_and_generic_launchers_do_not_require_sandbox(agent: &str) {
     let commands = [
         "bash -c 'git status'",
         "chroot /tmp git status",
@@ -290,6 +280,6 @@ fn shells_and_generic_launchers_do_not_require_sandbox() {
         "zsh -c 'git status'",
     ];
     for command in commands {
-        assert_decision(command, None);
+        assert_decision(agent, command, None);
     }
 }

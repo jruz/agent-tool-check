@@ -1,3 +1,5 @@
+mod env;
+
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::Write as _;
@@ -5,8 +7,6 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 use thiserror::Error;
-
-use crate::shared::env;
 
 #[derive(Error, Debug)]
 pub enum Error {

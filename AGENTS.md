@@ -10,7 +10,9 @@ agent-tool-check codex  # Codex PreToolUse hook (reads stdin)
 agent-tool-check pi     # Pi PreToolUse hook (reads stdin)
 ```
 
-Configure each agent's PreToolUse hook to pass the matching agent.
+Configure each agent's PreToolUse hook to pass the matching agent command.
+
+Use `agent-tool-check version` or `agent-tool-check --version` for build metadata.
 
 ## Release
 
@@ -75,33 +77,35 @@ See `scripts/denials-list/README.md` for report behavior.
 
 ## Architecture
 
-```
-src/
-  main.rs                # clap CLI, handles output and error logging
-  pre_tool_use.rs        # PreToolUse hook orchestrator
-  pre_tool_use/
-    claude.rs            # Claude-specific payload parsing and response rendering
-    codex.rs             # Codex-specific payload parsing and response rendering
-    pi.rs                # Pi-specific payload parsing and response rendering
-    filters.rs           # shared PreToolUse filter exports
-    filters/
-      bash.rs            # shared shell policy orchestrator
-      bash/
-        curl.rs          # inspect curl file inputs and outputs
-        environment.rs   # block environment output and shell tracing
-        paths.rs         # inspect command file operands and redirects
-        rules.rs         # executable, flag, and assignment policies
-        sandboxed_executable.rs # enforce local sandbox requirements
-      commit_msg.rs      # validate parsed git commit messages
-      secrets.rs         # shared sensitive-file policy and read exceptions
-      shell.rs           # shared shell parser, visitor, and execution context
-  shared/
-    agent.rs             # shared clap value enum for the agent argument
-    env.rs               # shared environment path helpers
-    mod.rs               # shared module exports
-    response.rs          # hook JSON response builders
-    logger.rs            # structured JSONL file logger
-```
+- `src/main.rs`: CLI entrypoint.
+- `src/commands/`: thin command modules.
+- `src/core/`: hook orchestration and policies.
+- `src/libs/`: self-contained protocol response builders.
+- `src/utils/`: generic output and logging utilities.
+- `tests/main.rs`: integration test entrypoint.
+- `tests/commands/`: one test file per CLI command.
+- `tests/utils/`: shared subprocess assertions.
+- `tests/fixtures/`: provider payloads.
+
+### Layer Rules
+
+- `main` calls `commands` and `utils`.
+- `commands` calls `core` and `utils`.
+- `core` calls `libs` and `utils`.
+- `libs` calls `utils`.
+- `utils` has no sibling-module dependencies.
+- `just rust::architecture-check` enforces architecture through `scripts/architecture-check.nu`.
+
+### Checker Conventions
+
+- Declare CLI commands as unit variants of `enum Command` in `src/main.rs`.
+- Put one variant on each line.
+- Use default Clap variant names.
+- Match command variants to snake-case source and test filenames.
+- Keep inline tests after production functions.
+- Test public application functions.
+- The regex lint flags direct same-file private-function calls in inline tests.
+- See `scripts/architecture-check.test.nu` for the checked patterns.
 
 ## Conventions
 
@@ -111,10 +115,12 @@ src/
 - local sandbox requirements target dependency-executing runtimes and package/build tools, not shells or generic launchers
 - sandbox exemptions apply only to sandbox requirements, not command or file restrictions
 - SSH and Docker commands retain remote/container execution context; local sandbox requirements are not imposed on their executables
-- `shared/response` builds the JSON hook callers expect
+- `src/libs/response.rs` builds the JSON hook callers expect
 - `main.rs` owns all printing (stdout/stderr) and error logging to file
 - each module has its own thiserror enum
-- event modules use `self_named_module_files` style, `shared/` uses `mod.rs`
+- event modules use `self_named_module_files` style
+- command and utility exports use `mod.rs`
+- layer exports use `mod.rs`
 
 ## SSH File Access
 

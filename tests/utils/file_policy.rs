@@ -1,12 +1,9 @@
-#[path = "support/hook_json.rs"]
-mod helpers;
+use crate::utils::hook_json as helpers;
 
-fn assert_file_policy(paths: &[&str], expected: Option<&str>) {
-    for agent in ["claude", "pi"] {
-        for tool in ["Read", "Grep"] {
-            for path in paths {
-                assert_file_call(agent, tool, path, expected);
-            }
+fn assert_file_policy(agent: &str, paths: &[&str], expected: Option<&str>) {
+    for tool in ["Read", "Grep"] {
+        for path in paths {
+            assert_file_call(agent, tool, path, expected);
         }
     }
 }
@@ -52,10 +49,10 @@ fn assert_block_response(agent: &str, response: &serde_json::Value, label: &str)
     }
 }
 
-#[test]
-fn blocks_plaintext_env_variants_for_file_tools() {
+pub fn blocks_plaintext_env_variants_for_file_tools(agent: &str) {
     let expected = Some("Access to sensitive file blocked");
     assert_file_policy(
+        agent,
         &[
             ".env",
             ".env.local",
@@ -85,9 +82,9 @@ fn blocks_plaintext_env_variants_for_file_tools() {
     );
 }
 
-#[test]
-fn allows_only_file_exceptions_inside_sensitive_paths() {
+pub fn allows_only_file_exceptions_inside_sensitive_paths(agent: &str) {
     assert_file_policy(
+        agent,
         &[
             ".env.example",
             "/app/.env.example",
@@ -111,10 +108,10 @@ fn allows_only_file_exceptions_inside_sensitive_paths() {
     );
 }
 
-#[test]
-fn file_exceptions_do_not_allow_other_sensitive_operands() {
+pub fn file_exceptions_do_not_allow_other_sensitive_operands(agent: &str) {
     let expected = Some("Access to sensitive file blocked");
     assert_file_policy(
+        agent,
         &[
             ".ssh",
             ".ssh/id_ed25519",
@@ -144,12 +141,16 @@ fn file_exceptions_do_not_allow_other_sensitive_operands() {
         expected,
     );
     let system_reason = Some("Access to system secret file blocked");
-    assert_file_policy(&["/etc/shadow", "/etc/shadow/key.pub"], system_reason);
+    assert_file_policy(
+        agent,
+        &["/etc/shadow", "/etc/shadow/key.pub"],
+        system_reason,
+    );
 }
 
-#[test]
-fn allows_ordinary_files_without_secret_name_false_positives() {
+pub fn allows_ordinary_files_without_secret_name_false_positives(agent: &str) {
     assert_file_policy(
+        agent,
         &[
             "src/environment.rs",
             "docs/env.local",

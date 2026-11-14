@@ -25,25 +25,6 @@ pub fn run_fixture(agent: &str, relative_path: &str) -> Output {
         .expect("run binary")
 }
 
-pub fn blocked_reason(output: &Output) -> Option<String> {
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if stdout.is_empty() {
-        return None;
-    }
-    let parsed: serde_json::Value = serde_json::from_str(&stdout).expect("parse stdout as JSON");
-    parsed
-        .get("reason")
-        .and_then(serde_json::Value::as_str)
-        .map(String::from)
-        .or_else(|| {
-            parsed
-                .get("hookSpecificOutput")
-                .and_then(|value| value.get("permissionDecisionReason"))
-                .and_then(serde_json::Value::as_str)
-                .map(String::from)
-        })
-}
-
 fn fixture_path(relative_path: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::shared::response;
+use crate::libs::response;
 
 use super::filters;
 
