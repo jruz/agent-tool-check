@@ -1,23 +1,32 @@
-import '.just/release.justfile'
+mod release '.just/release.justfile'
+
+mod git '.just/git.justfile'
+
+mod just '.just/just.justfile'
+
+mod tools '.just/tools.justfile'
 
 mod bun '.just/bun.justfile'
+
 mod nushell '.just/nushell.justfile'
+
 mod rust '.just/rust.justfile'
+
 mod ts '.just/ts.justfile'
 
 skill-pull:
     bun "$HOME/.pi/agent/skills/typescript/skill-pull/main.ts"
 
 setup:
+    just git::hooks-setup
     just ts::install
 
 install:
     just rust::install
 
 check:
-    just nushell::check
-    just nix-check
-    just woodpecker-check
+    just just::fmt-check
+    just oxfmt::fmt-check
     just rust::check
     just ts::install
     just ts::check
@@ -30,7 +39,7 @@ test:
     just ts::oxlint-rules-check
 
 run *ARGS='':
-    just rust::run {{ARGS}}
+    just rust::run {{ ARGS }}
 
 logs:
     nvim ~/.local/state/agent-tool-check/hooks.log
@@ -40,7 +49,7 @@ denials-list *ARGS:
     sandbox bun scripts/denials-list.ts "$@"
 
 ts-dependencies-add +PACKAGES:
-    sandbox pnpm add --save-dev --save-exact {{PACKAGES}}
+    sandbox pnpm add --save-dev --save-exact {{ PACKAGES }}
 
 bun-install:
     just ts::install
@@ -55,31 +64,9 @@ watch:
     just rust::watch
 
 fix:
-    just nix-fix
-    just nushell::fix
+    just just::fmt-fix
+    just oxfmt::fmt-fix
     just rust::fix
     just ts::fix
 
-# ──────────────────────────────── nix ────────────────────────────────
-
-nix-check:
-    fd \
-        --extension nix \
-        --exec nixfmt --check
-    statix check .
-    deadnix --fail .
-
-nix-fix:
-    fd \
-        --extension nix \
-        --exec nixfmt
-    statix fix .
-    deadnix --edit .
-
-# ────────────────────────────── woodpecker ──────────────────────────────
-
-woodpecker-check:
-    woodpecker-cli lint \
-        --strict \
-        .woodpecker/
-
+mod oxfmt '.just/oxfmt.justfile'

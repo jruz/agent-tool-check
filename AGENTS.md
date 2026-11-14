@@ -14,9 +14,9 @@ Configure each agent's PreToolUse hook to pass the matching agent.
 
 ## Release
 
-- `just release bump <version>` updates Cargo manifests and commits the version bump.
+- `just release::run bump <version>` updates Cargo manifests and commits the version bump.
 - Push the bump to `main`; CI handles tagging and publishing.
-- `just release delete <tag>` deletes a published release and its tag.
+- `just release::run delete <tag>` deletes a published release and its tag.
 
 ## Hook Files
 
@@ -37,8 +37,8 @@ Use the `just` recipes instead so they execute through the repo's sandbox wrappe
 - `just rust::build`
 - `just rust::check`
 - `just rust::test`
-- `just release upload <tag>`
-- `just release delete <tag>`
+- `just release::run upload <tag>`
+- `just release::run delete <tag>`
 
 `just setup` installs TypeScript dependencies. The sandbox builds runtime images on first use and reuses them until their Dockerfiles or runtime pins change.
 

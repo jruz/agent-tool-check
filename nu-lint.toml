@@ -21,7 +21,6 @@ unchecked_cell_path_index = "off"
 unhandled_external_error = "off"
 
 # this project
-main_positional_args_docs = "off"
 
 [groups]
 dead-code = "error"

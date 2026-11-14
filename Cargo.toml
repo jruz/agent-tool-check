@@ -76,5 +76,18 @@ lto = true
 [dev-dependencies]
 tempfile = "3.27.0"
 
+[profile.dev]
+debug = "line-tables-only"
+
 [build-dependencies]
-thiserror = "2.0.21"
+thiserror = "=2.0.21"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.fast]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16
+incremental = true

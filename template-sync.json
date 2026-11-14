@@ -1,0 +1,5 @@
+{
+  "review": ["src/commands/version.rs", "src/utils/output.rs"],
+  "revision": "3034acb6670aef8f025ff086d51924690e67f813",
+  "template": "jruz/template-rs"
+}

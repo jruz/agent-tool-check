@@ -1,10 +1,18 @@
+.direnv/
+/target/
+/tmp/*
+!/tmp/.gitkeep
+/node_modules/
+/PLAN.md
+result
+.intentionally-empty-file.o
+/*-unknown-linux-musl-*
+/*-apple-darwin-*
+
+# project entries below, everything above is managed by template-sync
 /target
 .direnv
 PLAN.md
 hooks
-result
-.intentionally-empty-file.o
 node_modules/
 .pnpm-store/
-/*-unknown-linux-musl-*
-/*-apple-darwin-*

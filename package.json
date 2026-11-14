@@ -9,11 +9,6 @@
     "oxlint-rules-check": "node --test .oxlint/*.test.ts",
     "tsc-check": "tsc"
   },
-  "engines": {
-    "bun": "1.4.4",
-    "node": "24.21.0",
-    "pnpm": "11.27.0"
-  },
   "dependencies": {
     "zod": "4.6.7"
   },
@@ -27,5 +22,10 @@
     "oxlint": "1.89.0",
     "oxlint-tsgolint": "7.0.2005",
     "typescript": "7.0.2"
+  },
+  "engines": {
+    "bun": "1.4.4",
+    "node": "24.21.0",
+    "pnpm": "11.27.0"
   }
 }
