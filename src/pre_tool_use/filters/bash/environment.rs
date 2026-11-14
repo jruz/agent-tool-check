@@ -18,7 +18,7 @@ pub enum Error {
 
 pub fn run(executable: &str, arguments: &[&ast::Word]) -> Result<(), Error> {
     match executable {
-        "printenv" => Err(Error::Dump),
+        "printenv" => check_printenv(arguments),
         "echo" | "printf" | "print" => arguments
             .iter()
             .try_for_each(|word| check_output_word(word)),
@@ -90,16 +90,36 @@ fn check_output_value(value: &str) -> Result<(), Error> {
     check_output_expansion(&pieces)
 }
 
-fn check_output_name(name: &str) -> Result<(), Error> {
-    let sensitive = name.split('_').any(|part| {
+fn is_sensitive_name(name: &str) -> bool {
+    name.split('_').any(|part| {
         ["TOKEN", "KEY", "SECRET", "PASSWORD", "PASSPHRASE"]
             .iter()
             .any(|sensitive| part.eq_ignore_ascii_case(sensitive))
-    });
-    if sensitive {
+    })
+}
+
+fn check_output_name(name: &str) -> Result<(), Error> {
+    if is_sensitive_name(name) {
         return Err(Error::RestrictedOutput);
     }
     Ok(())
+}
+
+fn check_printenv(arguments: &[&ast::Word]) -> Result<(), Error> {
+    let literals = arguments
+        .iter()
+        .map(|word| shell::static_word(word))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut names = literals
+        .iter()
+        .skip_while(|literal| matches!(literal.as_deref(), Some("-0" | "--null" | "--")));
+    let first = names.next().ok_or(Error::Dump)?;
+    std::iter::once(first)
+        .chain(names)
+        .try_for_each(|literal| match literal.as_deref() {
+            Some(name) if !name.starts_with('-') && !is_sensitive_name(name) => Ok(()),
+            Some(_) | None => Err(Error::Dump),
+        })
 }
 
 fn check_binding_output(arguments: &[&ast::Word]) -> Result<(), Error> {

@@ -128,6 +128,8 @@ src/
 
 - Output blocks underscore-separated name parts `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, and `PASSPHRASE` case-insensitively.
 - Ordinary named-variable output is permitted.
+- `printenv` permits explicit non-sensitive names with optional leading `-0`, `--null`, or `--`.
+- Dynamic `printenv` operands remain blocked.
 - Modified expansions also check embedded variable expansions.
 - Assignments and non-output variable use are not blocked by this rule.
 - Indirect expansions check only the written name without resolving its target.

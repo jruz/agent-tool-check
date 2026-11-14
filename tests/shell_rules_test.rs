@@ -822,7 +822,54 @@ fn sensitive_names_and_unsupported_expansions_remain_blocked() {
         "Never print variables with TOKEN, KEY, SECRET, PASSWORD, or PASSPHRASE name parts (case-insensitive). Unsupported output expansions remain blocked.",
     );
     assert_blocked(
-        &["printenv HOME", "env", "set -x; echo \"$HOME\""],
+        &["printenv", "env", "set -x; echo \"$HOME\""],
+        "Never print environment variables",
+    );
+}
+
+#[test]
+fn allows_printenv_with_explicit_ordinary_names() {
+    assert_allowed(&[
+        "printenv HOME",
+        "printenv HOME PROJECT_NAME TERM",
+        "printenv -0 HOME",
+        "printenv --null HOME USER",
+        "printenv -- HOME",
+        "printenv -0 -- HOME",
+        "printenv 'HOME' \"PROJECT_NAME\"",
+        "printenv apiToken MONKEY TOKENIZER KEYBOARD",
+        "/usr/bin/printenv HOME",
+        "command printenv HOME",
+        "env printenv HOME",
+        "sandbox printenv HOME",
+        "sandbox bash -c 'printenv HOME'",
+        "ssh host 'printenv HOME'",
+        "docker exec container printenv HOME",
+        "echo \"$(printenv HOME)\"",
+    ]);
+}
+
+#[test]
+fn blocks_printenv_sensitive_names_dynamic_operands_and_dumps() {
+    assert_blocked(
+        &[
+            "printenv",
+            "printenv -0",
+            "printenv --null",
+            "printenv --",
+            "printenv -0 --",
+            "printenv -00",
+            "printenv HOME API_TOKEN",
+            "printenv API_TOKEN HOME",
+            "printenv token api_key Secret password passphrase",
+            "printenv --null HOME Api_ToKeN",
+            "printenv -- api_token",
+            "printenv \"$name\"",
+            "printenv HOME \"$name\"",
+            "sandbox bash -c 'printenv api_key'",
+            "ssh host 'printenv password'",
+            "docker exec container printenv secret",
+        ],
         "Never print environment variables",
     );
 }
