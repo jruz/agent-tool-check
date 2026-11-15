@@ -1,21 +1,21 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "platforms": {
     "x86_64-linux": {
-      "asset": "agent-hooks-unknown-linux-musl-x86_64",
-      "hash": "sha256-S80/ZY6fi2eVr6UOIS0Qd9O2hc43WlxMXb/61Qf4CX0="
+      "asset": "agent-tool-check-unknown-linux-musl-x86_64",
+      "hash": "sha256-QXA3G18RY4xvAEjgHCMt4VZhHhvgPCpurwgLLD6mnrY="
     },
     "aarch64-linux": {
-      "asset": "agent-hooks-unknown-linux-musl-aarch64",
-      "hash": "sha256-5LwsWNi+TmVBUNo+Z2VkrokNx1NMCw2KwDLHrHaLD6k="
+      "asset": "agent-tool-check-unknown-linux-musl-aarch64",
+      "hash": "sha256-RhZyn+sZPsmqaQOiSXiS2+e8DTMcz7mUdmtpskNtDWU="
     },
     "x86_64-darwin": {
-      "asset": "agent-hooks-apple-darwin-x86_64",
-      "hash": "sha256-c+4VBRBW37JNJMcl9es6sa3gPuSDZ9tUTqSX3Xbb4f4="
+      "asset": "agent-tool-check-apple-darwin-x86_64",
+      "hash": "sha256-ArJnQMm6B9xpqmiavDiuQUaQXnOMXEFQJ+7zomHr0A0="
     },
     "aarch64-darwin": {
-      "asset": "agent-hooks-apple-darwin-aarch64",
-      "hash": "sha256-AEJ+6rrJJVluwoJLWJG0vFnY+vGJ6PMkhMcNowyvfGE="
+      "asset": "agent-tool-check-apple-darwin-aarch64",
+      "hash": "sha256-OuWn34PpioMMMrji6b8qAUz4UlAM0H4et8EvCcTEOX8="
     }
   }
 }
