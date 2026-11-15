@@ -12,6 +12,26 @@ const SHORT_FLAG_PREFIXES: [&str; 16] = [
     "", "a", "s", "n", "as", "an", "sa", "sn", "na", "ns", "asn", "ans", "san", "sna", "nas", "nsa",
 ];
 
+#[test]
+fn ager_blocks_plaintext() {
+    crate::utils::ager_policy::blocks_plaintext("claude");
+}
+
+#[test]
+fn ager_allows_ciphertext_and_unlisted() {
+    crate::utils::ager_policy::allows_ciphertext_and_unlisted("claude");
+}
+
+#[test]
+fn ager_only_uses_current_project() {
+    crate::utils::ager_policy::only_uses_current_project("claude");
+}
+
+#[test]
+fn ager_rejects_invalid_manifests() {
+    crate::utils::ager_policy::rejects_invalid_manifests("claude");
+}
+
 fn bash(command: &str) -> helpers::PreToolUsePayload {
     let mut input = HashMap::new();
     let key = "command".to_string();

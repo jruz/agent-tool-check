@@ -1,5 +1,7 @@
 use std::path;
 
+use super::ager;
+
 const SYSTEM_SECRETS: &[&str] = &[
     "/etc/shadow",
     "/etc/passwd",
@@ -27,6 +29,8 @@ const HISTORY_PATHS: &[&str] = &[
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error(transparent)]
+    Ager(#[from] ager::Error),
     #[error("Never access .env files directly")]
     Env,
     #[error("Access to sensitive file blocked")]
@@ -41,7 +45,7 @@ pub fn run(file_path: &str) -> Result<(), String> {
         Err(error) => {
             let reason = match error {
                 Error::Env => Error::Sensitive.to_string(),
-                Error::Sensitive | Error::System => error.to_string(),
+                Error::Ager(_) | Error::Sensitive | Error::System => error.to_string(),
             };
             Err(reason)
         }
@@ -49,6 +53,13 @@ pub fn run(file_path: &str) -> Result<(), String> {
 }
 
 pub fn check_path(value: &str) -> Result<(), Error> {
+    match ager::check_path(value)? {
+        ager::Access::Ciphertext => Ok(()),
+        ager::Access::Unlisted => check_unlisted_path(value),
+    }
+}
+
+fn check_unlisted_path(value: &str) -> Result<(), Error> {
     let file = path::Path::new(value);
     let normalized = file.components().collect::<path::PathBuf>();
     if is_system_secret(&normalized) {

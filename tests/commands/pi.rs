@@ -4,6 +4,26 @@ use helpers::{blocked_reason, run_fixture, stdout_json};
 use serde_json::Value;
 
 #[test]
+fn ager_blocks_plaintext() {
+    crate::utils::ager_policy::blocks_plaintext("pi");
+}
+
+#[test]
+fn ager_allows_ciphertext_and_unlisted() {
+    crate::utils::ager_policy::allows_ciphertext_and_unlisted("pi");
+}
+
+#[test]
+fn ager_only_uses_current_project() {
+    crate::utils::ager_policy::only_uses_current_project("pi");
+}
+
+#[test]
+fn ager_rejects_invalid_manifests() {
+    crate::utils::ager_policy::rejects_invalid_manifests("pi");
+}
+
+#[test]
 fn blocks_pi_bash_with_native_response() {
     let output = run_fixture("pi", "pi/pre_tool_use/bash_env.json");
     let json = stdout_json(&output).expect("should emit json");

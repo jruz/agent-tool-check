@@ -28,6 +28,11 @@ pub fn stdout_json(output: &Output) -> Option<serde_json::Value> {
 }
 
 pub fn run_pre_tool_use_json(agent: &str, stdin_json: &str) -> Output {
+    let cwd = std::env::current_dir().expect("get working directory");
+    run_pre_tool_use_json_in(agent, stdin_json, &cwd)
+}
+
+pub fn run_pre_tool_use_json_in(agent: &str, stdin_json: &str, cwd: &std::path::Path) -> Output {
     let mut tmp = tempfile::NamedTempFile::new().expect("create temp file");
     let stdin_bytes = stdin_json.as_bytes();
     tmp.write_all(stdin_bytes).expect("write temp file");
@@ -37,6 +42,7 @@ pub fn run_pre_tool_use_json(agent: &str, stdin_json: &str) -> Output {
     let binary = env!("CARGO_BIN_EXE_agent-tool-check");
     let stdin = Stdio::from(stdin_file);
     Command::new(binary)
+        .current_dir(cwd)
         .arg(agent)
         .stdin(stdin)
         .output()

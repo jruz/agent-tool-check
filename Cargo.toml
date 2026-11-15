@@ -10,6 +10,9 @@ chrono = "0.4.45"
 clap = { version = "4.6.7", features = ["derive"] }
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
+serde-saphyr = { version = "=2.1.1", default-features = false, features = [
+  "deserialize",
+] }
 serde_json = "1.0.151"
 thiserror = "2.0.21"
 

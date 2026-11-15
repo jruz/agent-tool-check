@@ -5,6 +5,7 @@ Blocks risky agent tool calls before they run.
 Supports Claude Code, Codex, and Pi.
 
 - blocks reads of sensitive files such as `.env` and private keys
+- blocks plaintext paths listed in the current directory’s `ager.yaml` while allowing their encrypted `.age` files
 - blocks environment variable output and shell tracing
 - requires package managers and build tools to be prefixed with `sandbox`, a command you provide that isolates them (for example in Docker)
 - validates commit titles match `[feat|bugs|refa|deps|tool] Area: summary`
