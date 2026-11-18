@@ -39,6 +39,8 @@ just denials-list --since-days 2
 - Filter with `--agent claude|codex|pi`.
 - Limit results with `--limit N`.
 - Use `--json` for metadata without commands.
+- Read `denial.log` without agent transcripts by default.
+- Use `--transcripts` for historical agent logs.
 
 ## Architecture
 
@@ -76,4 +78,12 @@ Run `just rust::architecture-check`.
 
 ## Logging
 
-Errors are logged as JSONL to `~/.local/state/agent-tool-check/hooks.log`.
+- Errors: `~/.local/state/agent-tool-check/errors.log`.
+- Denials: `~/.local/state/agent-tool-check/denial.log`.
+- Both logs use JSONL.
+- Denials include redacted commands and debugging context.
+- `XDG_STATE_HOME` controls the state directory.
+- Read errors with `just logs::errors-read`.
+- Read denials with `just logs::denials-read`.
+- Clear errors with `just logs::errors-clear`.
+- Clear denials with `just logs::denials-clear`.

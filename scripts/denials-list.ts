@@ -1,5 +1,7 @@
 import { parseArgs } from "node:util";
 import { homedir } from "node:os";
+import { join } from "node:path";
+import { readDenialLog } from "./denials-list/log.ts";
 import { z } from "zod";
 import { readSources } from "./denials-list/sources.ts";
 import { denialMetadata } from "./denials-list/transcripts.ts";
@@ -15,7 +17,7 @@ const Options = z
   })
   .readonly();
 const usage =
-  "just denials-list --since-days N [--limit N] [--agent all|claude|codex|pi] [--json]";
+  "just denials-list --since-days N [--limit N] [--agent all|claude|codex|pi] [--json] [--transcripts]";
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
   options: {
@@ -24,13 +26,14 @@ const { values } = parseArgs({
     agent: { type: "string" },
     help: { type: "boolean" },
     json: { type: "boolean" },
+    transcripts: { type: "boolean" },
   },
 });
 
 const main = async (): Promise<void> => {
   if (values.help === true) {
     output.text(
-      `${usage}\n--since-days is required and selects the last N × 24 hours.\n--limit defaults to 100. --agent defaults to all.\nOutputs JSON keyed by hook error with occurrence details and commands. Common credential forms are redacted; commands may still contain sensitive text.\n--json outputs the full metadata report without commands.\nCounts cover all matches; the limit selects the newest occurrences.`,
+      `${usage}\n--since-days is required and selects the last N × 24 hours.\n--limit defaults to 100. --agent defaults to all.\nOutputs JSON keyed by hook error with occurrence details and commands. Common credential forms are redacted; commands may still contain sensitive text.\n--json outputs the full metadata report without commands.\nReads denial.log by default. --transcripts reads historical agent sessions and includes SOPS and failed-tool reports.\nCounts cover all matches; the limit selects the newest occurrences.`,
     );
     return;
   }
@@ -44,7 +47,16 @@ const main = async (): Promise<void> => {
     Date.now() - options.data["since-days"] * 86_400_000,
   ).toISOString();
   const home = homedir();
-  const sources = await readSources(home, options.data.agent);
+  const stateHome = process.env["XDG_STATE_HOME"];
+  const logPath = join(
+    stateHome === undefined ? join(home, ".local", "state") : stateHome,
+    "agent-tool-check",
+    "denial.log",
+  );
+  const sources =
+    values.transcripts === true
+      ? await readSources(home, options.data.agent)
+      : await readDenialLog(logPath);
   sources.failures.forEach((failure) => {
     log.error(`${failure.code}: ${failure.source}: ${failure.message}`);
   });
@@ -102,6 +114,7 @@ const main = async (): Promise<void> => {
     })
     .toSorted((left, right) => right.count - left.count);
   const failures = reports.flatMap((report) => report.failures);
+  if (failures.length > 0) process.exitCode = 1;
   failures.forEach((failure) => {
     log.warn(`${failure.code}: ${failure.source}:${failure.line}`);
   });

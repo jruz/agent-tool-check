@@ -3,6 +3,7 @@ mod env;
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::Write as _;
+use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::PathBuf;
 
 use serde::Serialize;
@@ -40,26 +41,23 @@ fn log_dir() -> Result<PathBuf, Error> {
     Ok(path)
 }
 
-fn log_path() -> Result<PathBuf, Error> {
-    let dir = log_dir()?;
-    let path = dir.join("hooks.log");
-    Ok(path)
-}
-
-fn write_entry(entry: &LogEntry) -> Result<(), Error> {
+fn write_entry(name: &str, entry: &impl Serialize) -> Result<(), Error> {
     let dir = log_dir()?;
     fs::create_dir_all(&dir).map_err(Error::CreateDir)?;
 
     let line = serde_json::to_string(entry).map_err(Error::Serialize)?;
 
-    let path = log_path()?;
+    let path = dir.join(name);
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
+        .mode(0o600)
         .open(path)
         .map_err(Error::OpenFile)?;
 
-    writeln!(file, "{line}").map_err(Error::Write)?;
+    let record = format!("{line}\n");
+    let bytes = record.as_bytes();
+    file.write_all(bytes).map_err(Error::Write)?;
     Ok(())
 }
 
@@ -70,5 +68,9 @@ pub fn error(body: &str, attributes: HashMap<String, String>) -> Result<(), Erro
         severity_text: "ERROR",
         timestamp: chrono::Utc::now().to_rfc3339(),
     };
-    write_entry(&entry)
+    write_entry("errors.log", &entry)
+}
+
+pub fn denial(entry: &serde_json::Value) -> Result<(), Error> {
+    write_entry("denial.log", entry)
 }

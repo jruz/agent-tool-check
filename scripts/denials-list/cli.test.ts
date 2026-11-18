@@ -216,7 +216,7 @@ afterAll(async () => {
 });
 const run = (args: readonly string[], root: string) =>
   Bun.spawnSync({
-    cmd: [process.execPath, script, "--json", ...args],
+    cmd: [process.execPath, script, "--transcripts", "--json", ...args],
     env: { HOME: root },
     stdout: "pipe",
     stderr: "pipe",
@@ -380,9 +380,17 @@ test.each([
   expect(error).toContain("required options");
 });
 
-test("default output shows triggering commands grouped by exact error", () => {
+test("transcript output shows triggering commands grouped by exact error", () => {
   const output = Bun.spawnSync({
-    cmd: [process.execPath, script, "--since-days", "7", "--agent", "claude"],
+    cmd: [
+      process.execPath,
+      script,
+      "--transcripts",
+      "--since-days",
+      "7",
+      "--agent",
+      "claude",
+    ],
     env: { HOME: home },
     stdout: "pipe",
     stderr: "pipe",

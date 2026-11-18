@@ -101,14 +101,14 @@ const Failure = z
     line: z.number().int().positive(),
   })
   .readonly();
-const Denial = z
+export const Denial = z
   .object({
     agent: z.enum(["claude", "codex", "pi"]),
     timestamp: z.string(),
     project: z.string(),
-    session: z.string(),
+    session: z.string().nullable(),
     tool: z.string(),
-    callId: z.string(),
+    callId: z.string().nullable(),
     executable: z.string().nullable(),
     command: z.string().nullable(),
     reason: z.string(),

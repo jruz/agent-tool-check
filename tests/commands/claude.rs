@@ -1645,7 +1645,7 @@ fn logs_pre_tool_use_payload_shape() {
         String::from_utf8_lossy(&output.stderr).contains("failed to parse Claude PreToolUse JSON")
     );
 
-    let log_path = state_home.join("agent-tool-check").join("hooks.log");
+    let log_path = state_home.join("agent-tool-check").join("errors.log");
     let log = std::fs::read_to_string(log_path).expect("read log");
     let top_level_keys = r#""top_level_keys":"cwd,hook_event_name,session_id,tool_input,tool_name,tool_use_id,transcript_path""#;
     assert!(log.contains(r#""agent":"claude""#));

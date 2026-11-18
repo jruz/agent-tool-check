@@ -366,7 +366,7 @@ fn logs_pre_tool_use_agent() {
         String::from_utf8_lossy(&output.stderr).contains("failed to parse Codex PreToolUse JSON")
     );
 
-    let log_path = state_home.join("agent-tool-check").join("hooks.log");
+    let log_path = state_home.join("agent-tool-check").join("errors.log");
     let log = std::fs::read_to_string(log_path).expect("read log");
     assert!(log.contains(r#""Body":"PreToolUse""#));
     assert!(log.contains(r#""agent":"codex""#));

@@ -19,6 +19,7 @@ pub fn run() -> Output {
     let text = text();
     Output {
         success: true,
+        denial: None,
         text: format!("{} {text}\n", env!("CARGO_PKG_NAME")),
     }
 }

@@ -12,7 +12,7 @@ export type SourceReports = Readonly<{
   failures: readonly SourceFailure[];
 }>;
 
-export type SourceErrorCode = "read-directory" | "read-transcript";
+export type SourceErrorCode = "read-directory" | "read-transcript" | "read-log";
 export type SourceFailure = Readonly<{
   code: SourceErrorCode;
   source: string;

@@ -1,5 +1,7 @@
 mod claude;
 mod codex;
+mod context;
+mod denial;
 mod filters;
 mod pi;
 
@@ -24,13 +26,24 @@ pub fn run(agent: Agent) -> Result<output::Output, failure::Error> {
 
     match run_agent(agent, &stdin) {
         Ok(response) => {
-            let text = match response {
-                Some(response) => format!("{response}\n"),
-                None => String::new(),
+            let (text, denial) = match response {
+                Some(block) => {
+                    let entry = block.context.and_then(|context| {
+                        let pending = denial::Pending {
+                            agent: agent::as_str(agent),
+                            context,
+                            reason: block.reason,
+                        };
+                        denial::entry(pending).map_err(|err| err.to_string())
+                    });
+                    (format!("{}\n", block.text), Some(entry))
+                }
+                None => (String::new(), None),
             };
             Ok(output::Output {
                 success: true,
                 text,
+                denial,
             })
         }
         Err(reason) => {
@@ -46,7 +59,7 @@ fn read_stdin() -> Result<String, io::Error> {
     Ok(buf)
 }
 
-fn run_agent(agent: Agent, stdin: &str) -> Result<Option<String>, String> {
+fn run_agent(agent: Agent, stdin: &str) -> Result<Option<denial::Block>, String> {
     match agent {
         Agent::Claude => map_claude_error(stdin),
         Agent::Codex => map_codex_error(stdin),
@@ -54,17 +67,17 @@ fn run_agent(agent: Agent, stdin: &str) -> Result<Option<String>, String> {
     }
 }
 
-fn map_claude_error(stdin: &str) -> Result<Option<String>, String> {
+fn map_claude_error(stdin: &str) -> Result<Option<denial::Block>, String> {
     let output = claude::run(stdin).map_err(|err| err.to_string())?;
     Ok(output)
 }
 
-fn map_codex_error(stdin: &str) -> Result<Option<String>, String> {
+fn map_codex_error(stdin: &str) -> Result<Option<denial::Block>, String> {
     let output = codex::run(stdin).map_err(|err| err.to_string())?;
     Ok(output)
 }
 
-fn map_pi_error(stdin: &str) -> Result<Option<String>, String> {
+fn map_pi_error(stdin: &str) -> Result<Option<denial::Block>, String> {
     match pi::run(stdin) {
         Ok(output) => Ok(output),
         Err(err) => {

@@ -53,6 +53,12 @@ fn main() -> ExitCode {
             return ExitCode::SUCCESS;
         }
     };
+    if let Some(denial) = output.denial
+        && let Err(err) =
+            denial.and_then(|entry| logger::denial(&entry).map_err(|err| err.to_string()))
+    {
+        eprintln!("denial logging failed: {err}");
+    }
     print!("{}", output.text);
     if output.success {
         return ExitCode::SUCCESS;

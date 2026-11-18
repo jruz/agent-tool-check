@@ -2,6 +2,8 @@ mod release '.just/release.justfile'
 
 mod git '.just/git.justfile'
 
+mod logs '.just/logs.justfile'
+
 mod just '.just/just.justfile'
 
 mod tools '.just/tools.justfile'
@@ -40,9 +42,6 @@ test:
 
 run *ARGS='':
     just rust::run {{ ARGS }}
-
-logs:
-    nvim ~/.local/state/agent-tool-check/hooks.log
 
 [positional-arguments]
 denials-list *ARGS:
