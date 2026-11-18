@@ -1,5 +1,9 @@
 {
-  "review": ["scripts/architecture-check.nu"],
-  "revision": "3034acb6670aef8f025ff086d51924690e67f813",
+  "review": [
+    "scripts/architecture-check.nu",
+    "src/commands/version.rs",
+    "src/utils/output.rs"
+  ],
+  "revision": "9152c4d8ccbd874c973c3f706f021eaf01d10455",
   "template": "jruz/template-rs"
 }

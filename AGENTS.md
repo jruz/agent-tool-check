@@ -4,9 +4,9 @@ Rust CLI that runs the PreToolUse hook for Claude Code, Codex, and Pi.
 
 ## Release
 
-- `just release::run bump <version>` updates Cargo manifests and commits the version bump.
+- `just release bump <version>` updates Cargo manifests and commits the version bump.
 - Push the bump to `main`; CI handles tagging and publishing.
-- `just release::run delete <tag>` deletes a published release and its tag.
+- `just release delete <tag>` deletes a published release and its tag.
 
 ## Hook
 
@@ -22,11 +22,9 @@ Use the `just` recipes instead so they execute through the repo's sandbox wrappe
 - `just test`
 - `just fix`
 - `just run ...`
-- `just rust::build`
+- `just rust::build-host`
 - `just rust::check`
 - `just rust::test`
-- `just release::run upload <tag>`
-- `just release::run delete <tag>`
 
 `just setup` installs TypeScript dependencies. The sandbox builds runtime images on first use and reuses them until their Dockerfiles or runtime pins change.
 

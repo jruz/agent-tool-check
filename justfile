@@ -1,5 +1,3 @@
-mod release '.just/release.justfile'
-
 mod git '.just/git.justfile'
 
 mod logs '.just/logs.justfile'
@@ -69,3 +67,7 @@ fix:
     just ts::fix
 
 mod oxfmt '.just/oxfmt.justfile'
+
+[positional-arguments]
+release +ARGS:
+    nu scripts/release.nu "$@"
