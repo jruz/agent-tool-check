@@ -4,6 +4,6 @@
     "src/commands/version.rs",
     "src/utils/output.rs"
   ],
-  "revision": "9152c4d8ccbd874c973c3f706f021eaf01d10455",
+  "revision": "d81697120b61e76ce0602db6036390960dd0d90f",
   "template": "jruz/template-rs"
 }
