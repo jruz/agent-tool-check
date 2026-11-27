@@ -1,21 +1,21 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "platforms": {
     "x86_64-linux": {
       "asset": "agent-tool-check-unknown-linux-musl-x86_64",
-      "hash": "sha256-5/5x1Uv3s192qJjAbPtw+CrVjZXrsJBLw54DXA1f30c="
+      "hash": "sha256-5n0RrkC7xbdAewwDVw4JUngowtPP5+cjJ1lkl2Rxbng="
     },
     "aarch64-linux": {
       "asset": "agent-tool-check-unknown-linux-musl-aarch64",
-      "hash": "sha256-57E0wdpOTJRtepoZSwK2w8O4dBTC8hRQE7xRTk3KDyY="
+      "hash": "sha256-JzmmOKAk1R5CLF3gwFpCa1oQjklYtC9XS7XeGPda+zw="
     },
     "x86_64-darwin": {
       "asset": "agent-tool-check-apple-darwin-x86_64",
-      "hash": "sha256-Pwa1mk6qVHD9umEfLWHyIE+3klB78D4BkfQuSf7NyJA="
+      "hash": "sha256-N/rFbFrkFitA6BaFFFV4xk2IoUtb1nXTQuSJJQU/nfo="
     },
     "aarch64-darwin": {
       "asset": "agent-tool-check-apple-darwin-aarch64",
-      "hash": "sha256-iEDzjX2wLWUjJ4HqtqOWWdJtlx8+Taaaxo2peCg7hI4="
+      "hash": "sha256-Ubbye20tdMCDFf/74YecfI+FY1hOT84owGKwFKaT0xw="
     }
   }
 }
