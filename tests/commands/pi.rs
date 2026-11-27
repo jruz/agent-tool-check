@@ -119,6 +119,11 @@ fn shell_rules_requires_fast_forward_only_git_merge() {
 }
 
 #[test]
+fn shell_rules_blocks_git_hook_skipping_flags() {
+    crate::utils::shell_rules::blocks_git_hook_skipping_flags("pi");
+}
+
+#[test]
 fn shell_rules_allows_security_mentions_without_execution() {
     crate::utils::shell_rules::allows_security_mentions_without_execution("pi");
 }

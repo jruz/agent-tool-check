@@ -9,7 +9,7 @@ use crate::utils::provider_fixture::run_fixture;
 use helpers::{blocked_reason, payload, run_pre_tool_use};
 
 const SHORT_FLAG_PREFIXES: [&str; 16] = [
-    "", "a", "s", "n", "as", "an", "sa", "sn", "na", "ns", "asn", "ans", "san", "sna", "nas", "nsa",
+    "", "a", "s", "q", "as", "aq", "sa", "sq", "qa", "qs", "asq", "aqs", "saq", "sqa", "qas", "qsa",
 ];
 
 #[test]
@@ -1337,6 +1337,11 @@ fn shell_rules_allows_other_git_pull_commands_and_mentions() {
 #[test]
 fn shell_rules_requires_fast_forward_only_git_merge() {
     crate::utils::shell_rules::requires_fast_forward_only_git_merge("claude");
+}
+
+#[test]
+fn shell_rules_blocks_git_hook_skipping_flags() {
+    crate::utils::shell_rules::blocks_git_hook_skipping_flags("claude");
 }
 
 #[test]

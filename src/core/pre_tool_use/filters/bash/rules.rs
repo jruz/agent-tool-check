@@ -68,6 +68,9 @@ pub fn run(
 fn git_reason(arguments: &[Option<String>]) -> Option<&'static str> {
     let (subcommand, options) = arguments.split_first()?;
     let subcommand = subcommand.as_deref()?;
+    if skips_git_hooks(subcommand, options) {
+        return Some("Don't skip hooks");
+    }
     match subcommand {
         "merge" if !allows_git_merge(options) => {
             Some("Use `git merge --ff-only` or `git merge --abort`.")
@@ -109,6 +112,63 @@ fn allows_git_merge(arguments: &[Option<String>]) -> bool {
         }
     }
     fast_forward_only
+}
+
+fn skips_git_hooks(subcommand: &str, arguments: &[Option<String>]) -> bool {
+    let mut arguments = arguments.iter().map(Option::as_deref);
+    while let Some(argument) = arguments.next() {
+        let Some(argument) = argument else {
+            continue;
+        };
+        if argument == "--" {
+            break;
+        }
+        let option = match argument.split_once('=') {
+            Some((name, _)) => name,
+            None => argument,
+        };
+        if option.starts_with("--no-v") && "--no-verify".starts_with(option) {
+            return true;
+        }
+        if subcommand != "commit" {
+            continue;
+        }
+        if matches!(
+            argument,
+            "--message"
+                | "--file"
+                | "--reuse-message"
+                | "--reedit-message"
+                | "--fixup"
+                | "--squash"
+                | "--author"
+                | "--date"
+                | "--template"
+                | "--cleanup"
+                | "--trailer"
+        ) {
+            arguments.next();
+            continue;
+        }
+        if let Some(short) = argument
+            .strip_prefix('-')
+            .filter(|short| !short.starts_with('-'))
+        {
+            let mut flags = short.chars().peekable();
+            while let Some(flag) = flags.next() {
+                if flag == 'n' {
+                    return true;
+                }
+                if matches!(flag, 'm' | 'F' | 'C' | 'c' | 't' | 'S' | 'u' | 'U') {
+                    if matches!(flag, 'm' | 'F' | 'C' | 'c' | 't') && flags.peek().is_none() {
+                        arguments.next();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    false
 }
 
 fn snapshot_reason(executable: &str, arguments: &[Option<String>]) -> Option<&'static str> {

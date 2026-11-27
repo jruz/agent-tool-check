@@ -142,6 +142,35 @@ pub fn requires_fast_forward_only_git_merge(agent: &str) {
     );
 }
 
+pub fn blocks_git_hook_skipping_flags(agent: &str) {
+    assert_blocked(
+        agent,
+        &[
+            "cd ~/dev/dotfiles && git merge --no-verify -m '[tool] Dotfiles: Merge origin/main into local main' origin/main",
+            "git merge --ff-only '--no-verify' origin/main",
+            "git merge --abort --no-verify",
+            "git -C /tmp commit -m '[bugs] Hooks: test policy' --no-ver",
+            "git commit -n -m '[bugs] Hooks: test policy'",
+            "git commit -qnm '[bugs] Hooks: test policy'",
+            "git commit -m -- --no-verify",
+            "git commit --no-verify=true -m '[bugs] Hooks: test policy'",
+            r"/usr/bin/git push --no-veri\fy origin main",
+            "sandbox bash -c 'git rebase --no-verify origin/main'",
+        ],
+        "Don't skip hooks",
+    );
+    assert_allowed(
+        agent,
+        &[
+            "git push -n origin main",
+            "git merge -n --ff-only --verify-signatures origin/main",
+            "git commit -m '[tool] Docs: document --no-verify'",
+            "git show HEAD -- --no-verify",
+            "echo 'git push --no-verify'",
+        ],
+    );
+}
+
 pub fn allows_security_mentions_without_execution(agent: &str) {
     assert_allowed(
         agent,

@@ -11,6 +11,7 @@ Supports Claude Code, Codex, and Pi.
 - validates commit titles match `[feat|bugs|refa|deps|tool] Area: summary`
 - rejects `Co-Authored-By` trailers in commit messages
 - blocks `git merge` except for `git merge --ff-only` and standalone `git merge --abort`
+- blocks Git hook-skipping flags such as `--no-verify`
 
 ## Install with Nix
 
