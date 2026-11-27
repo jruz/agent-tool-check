@@ -5,7 +5,7 @@ Rust CLI that runs the PreToolUse hook for Claude Code, Codex, and Pi.
 ## Release
 
 - `just release bump <version>` updates Cargo manifests and commits the version bump.
-- Push the bump to `main`; CI handles tagging and publishing.
+- Push the bump to `main` to trigger tagging and publishing in CI.
 - `just release delete <tag>` deletes a published release and its tag.
 
 ## Hook
@@ -67,8 +67,10 @@ Run `just rust::architecture-check`.
 ## Conventions
 
 - filter modules return raw data, the orchestrator handles blocking logic
-- provider-specific wire parsing stays at the event edge; shared modules hold policy logic
-- all Bash providers use one shell visitor; policies inspect parsed invocations, assignments, and redirects rather than raw command strings
+- provider-specific wire parsing stays at the event edge
+- shared modules hold policy logic
+- all Bash providers use one shell visitor
+- policies inspect parsed invocations, assignments, and redirects rather than raw command strings
 - `src/libs/response.rs` builds the JSON hook callers expect
 - `main.rs` owns all printing (stdout/stderr) and error logging to file
 - each module has its own thiserror enum
@@ -81,7 +83,7 @@ Run `just rust::architecture-check`.
 - Both logs use JSONL.
 - Denials include redacted commands and debugging context.
 - `XDG_STATE_HOME` controls the state directory.
-- Read errors with `just logs::errors-read`.
-- Read denials with `just logs::denials-read`.
-- Clear errors with `just logs::errors-clear`.
-- Clear denials with `just logs::denials-clear`.
+- `just logs::errors-read` reads the error log.
+- `just logs::denials-read` reads the denial log.
+- `just logs::errors-clear` clears the error log.
+- `just logs::denials-clear` clears the denial log.
