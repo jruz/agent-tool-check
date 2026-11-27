@@ -1335,6 +1335,11 @@ fn shell_rules_allows_other_git_pull_commands_and_mentions() {
 }
 
 #[test]
+fn shell_rules_requires_fast_forward_only_git_merge() {
+    crate::utils::shell_rules::requires_fast_forward_only_git_merge("claude");
+}
+
+#[test]
 fn shell_rules_allows_security_mentions_without_execution() {
     crate::utils::shell_rules::allows_security_mentions_without_execution("claude");
 }

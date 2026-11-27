@@ -42,16 +42,7 @@ pub fn run(
         "atuin" if matches!(first, Some("search" | "history" | "stats" | "key")) => {
             Some("Access to shell history blocked")
         }
-        "git"
-            if first == Some("pull")
-                && (has_argument(arguments, "--no-rebase")
-                    || has_argument(arguments, "--rebase=false")) =>
-        {
-            Some("Don't disable rebasing with `git pull`. Use `git pull --rebase` instead.")
-        }
-        "git" if first == Some("filter-branch") && has_argument(arguments, "--all") => Some(
-            "Never use --all with git filter-branch \u{2014} it overwrites backup branches. Target specific branches instead.",
-        ),
+        "git" => git_reason(arguments),
         "env" if execution == shell::Execution::Container => {
             Some("Never read container environment variables")
         }
@@ -72,6 +63,52 @@ pub fn run(
         }
         None => Ok(()),
     }
+}
+
+fn git_reason(arguments: &[Option<String>]) -> Option<&'static str> {
+    let (subcommand, options) = arguments.split_first()?;
+    let subcommand = subcommand.as_deref()?;
+    match subcommand {
+        "merge" if !allows_git_merge(options) => {
+            Some("Use `git merge --ff-only` or `git merge --abort`.")
+        }
+        "pull"
+            if has_argument(options, "--no-rebase") || has_argument(options, "--rebase=false") =>
+        {
+            Some("Don't disable rebasing with `git pull`. Use `git pull --rebase` instead.")
+        }
+        "filter-branch" if has_argument(options, "--all") => Some(
+            "Never use --all with git filter-branch \u{2014} it overwrites backup branches. Target specific branches instead.",
+        ),
+        _ => None,
+    }
+}
+
+fn allows_git_merge(arguments: &[Option<String>]) -> bool {
+    if matches!(arguments, [Some(option)] if option == "--abort") {
+        return true;
+    }
+    let mut fast_forward_only = false;
+    for argument in arguments {
+        match argument.as_deref() {
+            Some("--") => break,
+            Some("--ff-only") => fast_forward_only = true,
+            Some(
+                "-q"
+                | "--quiet"
+                | "-v"
+                | "--verbose"
+                | "-n"
+                | "--stat"
+                | "--no-stat"
+                | "--verify-signatures"
+                | "--verify",
+            ) => {}
+            Some(operand) if !operand.starts_with('-') => {}
+            Some(_) | None => return false,
+        }
+    }
+    fast_forward_only
 }
 
 fn snapshot_reason(executable: &str, arguments: &[Option<String>]) -> Option<&'static str> {

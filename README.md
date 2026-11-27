@@ -10,6 +10,7 @@ Supports Claude Code, Codex, and Pi.
 - requires package managers and build tools to be prefixed with `sandbox`, a command you provide that isolates them (for example in Docker)
 - validates commit titles match `[feat|bugs|refa|deps|tool] Area: summary`
 - rejects `Co-Authored-By` trailers in commit messages
+- blocks `git merge` except for `git merge --ff-only` and standalone `git merge --abort`
 
 ## Install with Nix
 

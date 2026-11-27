@@ -110,6 +110,38 @@ pub fn allows_other_git_pull_commands_and_mentions(agent: &str) {
     );
 }
 
+pub fn requires_fast_forward_only_git_merge(agent: &str) {
+    assert_blocked(
+        agent,
+        &[
+            "git merge origin/main",
+            "git merge --no-commit origin/main",
+            "git merge --no-ff origin/main",
+            "git merge --continue",
+            "git merge --ff-only --ff origin/main",
+            "git merge --ff-only --no-ff origin/main",
+            "git merge --ff-only --continue",
+            "git merge -m '--ff-only' origin/main",
+            "git merge -- --ff-only",
+            "git merge --ff-only \"$option\" origin/main",
+            "git -C /tmp merge origin/main",
+            "sandbox bash -c 'git merge origin/main'",
+        ],
+        "Use `git merge --ff-only` or `git merge --abort`.",
+    );
+    assert_allowed(
+        agent,
+        &[
+            "git merge --abort",
+            "git merge --ff-only origin/main",
+            "git -C /tmp merge --ff-only -- \"$branch\"",
+            "command git merge -q '--ff-only' origin/main",
+            "git merge-tree --write-tree HEAD origin/main",
+            "echo 'git merge origin/main'",
+        ],
+    );
+}
+
 pub fn allows_security_mentions_without_execution(agent: &str) {
     assert_allowed(
         agent,
