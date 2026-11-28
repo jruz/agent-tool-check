@@ -1,16 +1,16 @@
-mod git '.just/git.justfile'
+mod git '.just/git.just'
 
 mod logs '.just/logs.justfile'
 
-mod just '.just/just.justfile'
+mod just '.just/just.just'
 
-mod tools '.just/tools.justfile'
+mod tools '.just/tools.just'
 
 mod bun '.just/bun.justfile'
 
 mod nushell '.just/nushell.justfile'
 
-mod rust '.just/rust.justfile'
+mod rust '.just/rust.just'
 
 mod ts '.just/ts.justfile'
 
@@ -18,6 +18,7 @@ skill-pull:
     bun "$HOME/.pi/agent/skills/typescript/skill-pull/main.ts"
 
 setup:
+    direnv allow
     just git::hooks-setup
     just ts::install
 
@@ -66,7 +67,7 @@ fix:
     just rust::fix
     just ts::fix
 
-mod oxfmt '.just/oxfmt.justfile'
+mod oxfmt '.just/oxfmt.just'
 
 [positional-arguments]
 release +ARGS:
